@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
+from typing import List, Optional,Dict
 import os
+from services.assistant import career_assistant
 
 from models.job import Job, JobMatch, JobSearchResponse, SearchLinkResponse
 from services.matcher import JobMatcher
@@ -140,7 +141,9 @@ async def get_job_search_link(job_title: str):
         job_title=job_title,
         linkedin_url=urls["linkedin_url"],
         indeed_url=urls["indeed_url"],
-        google_url=urls["google_url"]
+        google_url=urls["google_url"],
+        marocannonces_url=urls["marocannonces_url"],  # 
+        rekrute_url=urls["rekrute_url"] 
     )
 
 @router.get("/categories")
@@ -172,3 +175,60 @@ async def health_check():
         "jobs_loaded": jobs_loaded,
         "matcher_initialized": job_matcher is not None
     }
+    
+@router.post("/assistant", response_model=Dict)
+async def career_assistant_endpoint(
+    message: str = Query(..., description="Message en langage naturel pour l'assistant")
+):
+    """Assistant conversationnel pour la recherche d'emploi"""
+    if not job_matcher:
+        raise HTTPException(status_code=500, detail="Job matcher not initialized")
+    
+    try:
+        # Analyser le message avec l'assistant
+        analysis = career_assistant.analyze_query(message)
+        
+        # Utiliser la requête optimisée pour la recherche
+        search_query = analysis['search_query'] or message
+        matches = job_matcher.search_jobs(search_query, top_k=10)
+        
+        # Préparer les résultats
+        jobs_results = []
+        for idx, score in matches:
+            job_data = job_matcher.get_job_by_index(idx)
+            
+            # Générer toutes les URLs
+            all_urls = LinkGenerator.generate_all_urls(job_data.get('job_title', search_query))
+            
+            job_match = JobMatch(
+                job_id=job_data.get('job_id', idx + 1),
+                job_title=job_data.get('job_title', f'Poste {idx + 1}'),
+                category=job_data.get('category', 'Général'),
+                description=job_data.get('description', 'Description non disponible'),
+                required_skills=job_data.get('required_skills', 'Compétences variées'),
+                recommended_courses=job_data.get('recommended_courses', ''),
+                avg_salary_mad=job_data.get('avg_salary_mad', 'Non spécifié'),
+                demand_level=job_data.get('demand_level', 'Medium'),
+                match_score=round(score, 4),
+                linkedin_url=all_urls["linkedin_url"]  # Utiliser LinkedIn comme avant
+            )
+            jobs_results.append(job_match)
+        
+        # Convertir en dictionnaires pour ajouter les URLs supplémentaires
+        jobs_with_all_urls = []
+        for i, job in enumerate(jobs_results):
+            job_dict = job.dict()
+            # Ajouter toutes les URLs pour ce job
+            job_data = job_matcher.get_job_by_index(matches[i][0])
+            all_urls = LinkGenerator.generate_all_urls(job_data.get('job_title', search_query))
+            job_dict["all_search_urls"] = all_urls  # ← AJOUTER TOUTES LES URLs
+            jobs_with_all_urls.append(job_dict)
+        
+        # Générer la réponse complète de l'assistant
+        assistant_response = career_assistant.generate_response(message, jobs_with_all_urls)
+        
+        return assistant_response
+        
+    except Exception as e:
+        print(f"❌ Error in assistant: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Assistant error: {str(e)}")

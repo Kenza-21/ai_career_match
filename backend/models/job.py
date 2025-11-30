@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Any
+from typing import Dict, List, Optional, Any
 
 class JobBase(BaseModel):
     job_title: str
@@ -31,3 +31,12 @@ class SearchLinkResponse(BaseModel):
     linkedin_url: str
     indeed_url: str
     google_url: str
+    marocannonces_url: str  #
+    rekrute_url: str   
+    
+class AssistantResponse(BaseModel):
+    analysis: Dict
+    summary: Dict
+    search_query_used: str
+    jobs: List[JobMatch]
+    suggestions: List[str]    

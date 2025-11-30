@@ -28,7 +28,7 @@ app.include_router(job_router)
 @app.get("/")
 async def root():
     return {
-        "message": "🚀 Career-Match Backend API",
+        "message": " Career-Match Backend API",
         "version": "1.0.0",
         "description": "Smart job matching engine for Moroccan job market",
         "endpoints": {
