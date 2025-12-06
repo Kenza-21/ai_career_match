@@ -5,3 +5,9 @@ pandas==2.2.3
 scikit-learn==1.5.2
 python-multipart==0.0.12
 pydantic==2.10.0
+#cv
+nltk==3.8.1
+pypdf2==3.0.1
+docx2txt==0.8
+beautifulsoup4==4.12.2
+requests==2.31.0

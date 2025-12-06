@@ -40,3 +40,51 @@ class AssistantResponse(BaseModel):
     search_query_used: str
     jobs: List[JobMatch]
     suggestions: List[str]    
+    
+    
+class SkillGap(BaseModel):
+    skill_name: str
+    required_level: str
+    current_level: str
+    gap_severity: str  # "low", "medium", "high"
+
+class TrainingRecommendation(BaseModel):
+    skill: str
+    platform: str
+    course_name: str
+    url: str
+    duration: str
+    level: str
+    source: Optional[str] = "live_scraping"
+    free: Optional[bool] = False
+
+class CVImprovement(BaseModel):
+    section: str
+    current_situation: str
+    suggested_text: str
+    reason: str
+
+class ATSRecommendation(BaseModel):
+    type: str
+    issue: str
+    solution: str
+    priority: str
+
+class CVAnalysisRequest(BaseModel):
+    cv_text: str
+    job_description: str
+
+class CVAnalysisResponse(BaseModel):
+    match_score: float
+    cv_skills: List[str]
+    job_skills: List[str]
+    skill_gaps: List[SkillGap]
+    missing_skills: List[str]
+    training_recommendations: List[TrainingRecommendation]
+    key_phrases: List[Dict]
+    ats_recommendations: List[ATSRecommendation]
+    cv_sections: Optional[Dict] = None
+    overall_assessment: str
+    
+    class Config:
+        from_attributes = True    
