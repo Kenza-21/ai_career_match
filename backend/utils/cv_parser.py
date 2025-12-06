@@ -2,8 +2,8 @@ import PyPDF2
 import docx2txt
 from fastapi import UploadFile, HTTPException
 import re
-from typing import Dict
 import io
+from typing import Dict
 
 class CVParser:
     @staticmethod
@@ -16,14 +16,18 @@ class CVParser:
             # Réinitialiser pour pouvoir relire
             file.file.seek(0)
             
-            if file.filename.lower().endswith(".pdf"):
+            # Vérifier l'extension
+            filename_lower = file.filename.lower()
+            
+            if filename_lower.endswith(".pdf"):
                 return CVParser._extract_from_pdf(content)
-            elif file.filename.lower().endswith(".docx"):
+            elif filename_lower.endswith(".docx"):
                 return CVParser._extract_from_docx(content)
-            elif file.filename.lower().endswith(".txt"):
+            elif filename_lower.endswith(".txt"):
                 return CVParser._extract_from_txt(content)
             else:
-                raise HTTPException(status_code=400, detail="Format non supporté. Utilisez PDF, DOCX ou TXT.")
+                raise HTTPException(status_code=400, 
+                                  detail="Format non supporté. Utilisez PDF, DOCX ou TXT.")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Erreur d'extraction: {str(e)}")
     
@@ -37,10 +41,16 @@ class CVParser:
             
             text = ""
             for page in reader.pages:
-                text += page.extract_text() + "\n"
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
             
             # Nettoyer le texte
             text = CVParser._clean_extracted_text(text)
+            
+            if not text.strip():
+                raise Exception("PDF vide ou non lisible")
+                
             return text
             
         except Exception as e:
@@ -53,7 +63,12 @@ class CVParser:
             # Créer un objet fichier en mémoire
             docx_file = io.BytesIO(content)
             text = docx2txt.process(docx_file)
-            return CVParser._clean_extracted_text(text)
+            text = CVParser._clean_extracted_text(text)
+            
+            if not text.strip():
+                raise Exception("DOCX vide ou non lisible")
+                
+            return text
         except Exception as e:
             raise Exception(f"Erreur lecture DOCX: {str(e)}")
     
@@ -61,18 +76,42 @@ class CVParser:
     def _extract_from_txt(content: bytes) -> str:
         """Extrait le texte d'un TXT"""
         try:
-            text = content.decode('utf-8')
-            return CVParser._clean_extracted_text(text)
+            text = content.decode('utf-8', errors='ignore')
+            text = CVParser._clean_extracted_text(text)
+            
+            if not text.strip():
+                raise Exception("TXT vide")
+                
+            return text
         except Exception as e:
             raise Exception(f"Erreur lecture TXT: {str(e)}")
     
     @staticmethod
     def _clean_extracted_text(text: str) -> str:
         """Nettoie le texte extrait"""
+        if not text:
+            return ""
+        
+        # Remplacer les caractères problématiques
+        replacements = {
+            '�': '',  # Caractère inconnu
+            '\x00': '',  # Null byte
+            '\ufffd': '',  # Replacement character
+        }
+        
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        
         # Supprimer les caractères non imprimables
-        text = re.sub(r'[^\x00-\x7F]+', ' ', text)
+        text = ''.join(char for char in text if ord(char) >= 32 or char in '\n\r\t')
+        
+        # Normaliser les sauts de ligne
+        text = re.sub(r'\r\n', '\n', text)
+        text = re.sub(r'\r', '\n', text)
+        
         # Supprimer les espaces multiples
         text = re.sub(r'\s+', ' ', text)
+        
         return text.strip()
     
     @staticmethod
@@ -84,22 +123,45 @@ class CVParser:
             "skills": "",
             "projects": "",
             "summary": "",
-            "contact": ""
+            "contact": "",
+            "languages": "",
+            "certifications": ""
         }
         
-        # Patterns pour détecter les sections
+        # Normaliser le texte
+        cv_text = cv_text.replace('\n', ' ').replace('\r', ' ')
+        cv_text = re.sub(r'\s+', ' ', cv_text)
+        
+        # Patterns pour détecter les sections (français/anglais)
         section_patterns = {
-            "experience": r"(EXPÉRIENCE PROFESSIONNELLE|EXPERIENCE|WORK EXPERIENCE|EMPLOI|EMPLOIS|EXPERIENCES)(.*?)(?=EDUCATION|FORMATION|COMPÉTENCES|PROJETS|$)",
-            "education": r"(EDUCATION|FORMATION|EDUCATION|DIPLÔMES|DIPLOMES|EDUCATION)(.*?)(?=COMPÉTENCES|EXPERIENCE|PROJETS|$)",
-            "skills": r"(COMPÉTENCES|SKILLS|COMPETENCES|APTITUDES|COMPETENCES TECHNIQUES)(.*?)(?=EXPERIENCE|EDUCATION|PROJETS|$)",
-            "projects": r"(PROJETS|PROJECTS|RÉALISATIONS|REALISATIONS|PORTFOLIO)(.*?)(?=EXPERIENCE|EDUCATION|COMPÉTENCES|$)",
-            "summary": r"(PROFIL|SUMMARY|OBJECTIF|ABOUT|À PROPOS|PROFILE)(.*?)(?=EXPERIENCE|EDUCATION|COMPÉTENCES|$)",
-            "contact": r"(CONTACT|COORDONNÉES|COORDONNEES|INFORMATION|INFORMATIONS)(.*?)(?=EXPERIENCE|EDUCATION|PROFILE|$)"
+            "experience": r"(EXPERIENCE|EXPÉRIENCE|WORK EXPERIENCE|EMPLOI|EMPLOIS|STAGE|STAGES|PROFESSIONAL EXPERIENCE)(.*?)(?=(EDUCATION|FORMATION|COMPÉTENCES|PROJETS|CERTIFICATIONS|$))",
+            "education": r"(EDUCATION|FORMATION|ÉTUDES|DIPLÔMES|ACADÉMIQUE|ACADEMIC)(.*?)(?=(COMPÉTENCES|EXPERIENCE|PROJETS|CERTIFICATIONS|$))",
+            "skills": r"(COMPÉTENCES|SKILLS|APTITUDES|TECHNICAL SKILLS|HARD SKILLS|COMPETENCES)(.*?)(?=(EXPERIENCE|EDUCATION|PROJETS|LANGUES|$))",
+            "projects": r"(PROJETS|PROJECTS|RÉALISATIONS|PORTFOLIO)(.*?)(?=(EXPERIENCE|EDUCATION|COMPÉTENCES|$))",
+            "languages": r"(LANGUES|LANGUAGES|LANGUE)(.*?)(?=(COMPÉTENCES|EXPERIENCE|FORMATION|$))",
+            "certifications": r"(CERTIFICATIONS|CERTIFICATS|DIPLÔMES)(.*?)(?=(COMPÉTENCES|EXPERIENCE|FORMATION|$))",
+            "summary": r"(PROFIL|SUMMARY|OBJECTIF|ABOUT|À PROPOS|PRÉSENTATION|PROFILE)(.*?)(?=(EXPERIENCE|EDUCATION|COMPÉTENCES|$))"
         }
         
         for section, pattern in section_patterns.items():
             match = re.search(pattern, cv_text, re.IGNORECASE | re.DOTALL)
             if match:
                 sections[section] = match.group(2).strip()
+        
+        # Contact: emails et téléphones (toujours chercher)
+        email_pattern = r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}'
+        phone_pattern = r'(\+?\d{1,3}[-.\s]?)?\(?\d{2,3}\)?[-.\s]?\d{2,4}[-.\s]?\d{2,4}'
+        
+        emails = re.findall(email_pattern, cv_text)
+        phones = re.findall(phone_pattern, cv_text)
+        
+        if emails or phones:
+            sections["contact"] = f"Emails: {', '.join(emails[:3])} | Téléphones: {', '.join(phones[:2])}"
+        else:
+            # Chercher dans les premières lignes
+            first_lines = cv_text[:500]
+            emails = re.findall(email_pattern, first_lines)
+            if emails:
+                sections["contact"] = f"Email: {emails[0]}"
         
         return sections

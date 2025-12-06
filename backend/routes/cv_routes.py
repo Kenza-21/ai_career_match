@@ -93,49 +93,40 @@ async def get_available_skills():
         "technical_skills": cv_analyzer.technical_skills,
         "total_skills": len(cv_analyzer.technical_skills)
     }
-    
 @router.post("/analyze-upload")
 async def analyze_cv_upload(
     cv_file: UploadFile = File(..., description="CV (PDF, DOCX, TXT)"),
     job_description: str = Form(..., description="Description de l'offre d'emploi")
 ):
-    """Analyse CV avec upload de fichier"""
+    """Analyse CV avec extraction améliorée"""
     try:
-        print(f"📄 Upload de CV: {cv_file.filename}")
-        
-        # Vérifier le type de fichier
-        allowed_extensions = ['.pdf', '.docx', '.txt']
-        file_extension = cv_file.filename.lower().split('.')[-1]
-        
-        if file_extension not in ['pdf', 'docx', 'txt']:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Format non supporté. Utilisez: {', '.join(allowed_extensions)}"
-            )
+        print(f"📄 Analyse CV: {cv_file.filename}")
         
         # Extraction du texte
         cv_text = CVParser.extract_text_from_cv(cv_file)
         
-        if len(cv_text.strip()) < 50:
-            raise HTTPException(status_code=400, detail="CV trop court ou impossible à extraire")
-        
-        print(f"✅ Texte extrait ({len(cv_text)} caractères)")
+        if len(cv_text.strip()) < 100:
+            raise HTTPException(status_code=400, detail="CV trop court ou illisible")
         
         # Extraction des sections
         cv_sections = CVParser.parse_cv_sections(cv_text)
-        print(f"✅ Sections identifiées: {list(cv_sections.keys())}")
         
-        # Analyse
+        # 🔥 UTILISER LA NOUVELLE MÉTHODE AMÉLIORÉE
         analysis_result = cv_analyzer.analyze_cv_vs_job(cv_text, job_description)
-        analysis_result["cv_sections"] = cv_sections
+        
+        # Ajouter les sections au résultat
+        analysis_result["cv_sections"] = {k: v[:300] + "..." if len(v) > 300 else v 
+                                          for k, v in cv_sections.items()}
         analysis_result["filename"] = cv_file.filename
         
         print(f"✅ Analyse terminée - Score: {analysis_result['match_score']}")
+        print(f"   Compétences CV: {analysis_result['summary']['cv_skills_count']}")
+        print(f"   Compétences Offre: {analysis_result['summary']['job_skills_count']}")
         
         return analysis_result
         
-    except HTTPException:
-        raise
     except Exception as e:
-        print(f"❌ Erreur dans l'analyse upload: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erreur d'analyse: {str(e)}")    
+        print(f"❌ Erreur analyse CV: {e}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Erreur d'analyse: {str(e)}")

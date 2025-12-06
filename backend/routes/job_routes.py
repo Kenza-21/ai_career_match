@@ -6,7 +6,7 @@ from services.assistant import career_assistant
 from models.job import Job, JobMatch, JobSearchResponse, SearchLinkResponse
 from services.matcher import JobMatcher
 from utils.link_generator import LinkGenerator
-
+from services.llm_assistant import career_assistant
 # Initialize the job matcher
 current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 csv_path = os.path.join(current_dir, "data", "jobs_morocco.csv")
@@ -232,3 +232,101 @@ async def career_assistant_endpoint(
     except Exception as e:
         print(f"❌ Error in assistant: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Assistant error: {str(e)}")
+    
+    
+@router.post("/smart-assistant")
+async def smart_career_assistant(
+    message: str = Query(..., description="Message à l'assistant"),
+    clarification: Optional[str] = Query(None)
+):
+    """Assistant IA intelligent pour la recherche d'emploi"""
+    try:
+        print(f"🤖 Assistant reçoit: {message}")
+        
+        # Analyse avec le LLM
+        analysis = career_assistant.analyze_query(message)
+        
+        # VÉRIFIER SI C'EST UN STRING JSON ET LE PARSER
+        if isinstance(analysis, str):
+            try:
+                analysis = json.loads(analysis)
+            except:
+                analysis = {"intent": "clair", "response": analysis}
+        
+        # Si besoin de clarification
+        if analysis.get('needs_clarification') and not clarification:
+            return {
+                "assistant_response": analysis.get('response', ''),
+                "needs_clarification": True,
+                "clarification_questions": analysis.get('clarification_questions', []),
+                "intent": analysis.get('intent', 'vague')
+            }
+        
+        # DÉTERMINER LA REQUÊTE DE RECHERCHE
+        if clarification:
+            search_query = f"{message} {clarification}"
+        else:
+            search_query = analysis.get('search_query', message)
+        
+        # Si recherche vague ou vide
+        if not search_query or search_query.strip() == "":
+            return {
+                "assistant_response": analysis.get('response', ''),
+                "needs_clarification": True,
+                "clarification_questions": ["Quel domaine tech précis ?", "Quel type de poste ?"],
+                "intent": "vague"
+            }
+        
+        # 🔍 RECHERCHE AVEC LE MOTEUR EXISTANT
+        matches = job_matcher.search_jobs(search_query, top_k=5)
+        
+        # Préparer les résultats SANS SCORE
+        results = []
+        for idx, _ in matches:  # On ignore le score ici
+            job_data = job_matcher.get_job_by_index(idx)
+            
+            results.append({
+                "job_title": job_data.get('job_title', 'Titre inconnu'),
+                "category": job_data.get('category', 'Non catégorisé'),
+                "description_preview": job_data.get('description', '')[:100] + "...",
+                "demand_level": job_data.get('demand_level', 'Medium'),
+                "salary_range": job_data.get('avg_salary_mad', 'Non spécifié')
+            })
+        
+        # Générer les liens de recherche
+        search_urls = []
+        if results:
+            # Générer des liens pour les 3 premiers jobs
+            for job in results[:3]:
+                job_title = job['job_title']
+                urls = LinkGenerator.generate_all_urls(job_title)
+                search_urls.append({
+                    "job_title": job_title,
+                    "linkedin_url": urls.get("linkedin_url"),
+                    "rekrute_url": urls.get("rekrute_url")
+                })
+        
+        # Construire la réponse finale
+        response_message = f"J'ai trouvé {len(results)} offres correspondant à votre recherche."
+        if results:
+            top_jobs = ", ".join([r['job_title'] for r in results[:3]])
+            response_message += f" Par exemple : {top_jobs}."
+        
+        return {
+            "assistant_response": response_message,
+            "intent": analysis.get('intent', 'clair'),
+            "search_query_used": search_query,
+            "total_matches": len(results),
+            "jobs": results,  # Renommé de "results" à "jobs" pour clarté
+            "search_urls": search_urls,  # Liens de recherche externes
+            "next_step": "Pour une analyse détaillée de compatibilité, uploadez votre CV via /cv/analyze-upload",
+            "needs_clarification": False
+        }
+        
+    except Exception as e:
+        print(f"❌ Erreur assistant: {e}")
+        return {
+            "error": str(e),
+            "assistant_response": "Désolé, une erreur est survenue.",
+            "needs_clarification": False
+        }
