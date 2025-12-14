@@ -1,8 +1,8 @@
 import re
-from typing import Dict, List, Tuple
-import spacy
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from datetime import datetime
+from typing import Dict, List, Set, Optional
+from services.matcher import JobMatcher
+from utils.link_generator import LinkGenerator
 
 class CareerAssistant:
     def __init__(self):
@@ -22,6 +22,8 @@ class CareerAssistant:
             'remote': 'remote télétravail',
             'ville': ''  # Sera rempli dynamiquement
         }
+        # État de session léger pour les flux de clarification
+        self.sessions: Dict[str, Dict] = {}
     
     def analyze_query(self, user_message: str) -> Dict:
         """Analyse le message utilisateur et extrait les intentions"""
@@ -55,6 +57,14 @@ class CareerAssistant:
         if ville_match:
             analysis['lieu'] = ville_match.group(1)
         
+        # Préparer les requêtes de secours
+        fallback_queries = []
+        if analysis['lieu']:
+            fallback_queries.append(f"{user_message} {analysis['lieu']}")
+        if analysis['competences']:
+            fallback_queries.extend([f"{skill} emploi maroc" for skill in analysis['competences']])
+        analysis['fallback_queries'] = fallback_queries
+
         # Construction de la requête de recherche optimisée
         query_parts = []
         
@@ -71,6 +81,163 @@ class CareerAssistant:
         analysis['search_query'] = ' '.join(query_parts) if query_parts else user_message
         
         return analysis
+
+    # --- NOUVELLE LOGIQUE ---
+    def is_ambiguous(self, user_message: str) -> bool:
+        """Heuristique simple pour détecter les requêtes vagues"""
+        tokens = re.findall(r"\w+", user_message.lower())
+        if len(tokens) < 4:
+            return True
+        vague_markers = {"help", "aide", "projet", "project", "issue", "problème", "error", "besoin", "conseil"}
+        if any(t in vague_markers for t in tokens):
+            return True
+        # Absence de mots clés métier
+        skill_markers = {"developpeur", "developer", "data", "analyste", "designer", "marketing", "devops", "backend", "frontend"}
+        return not any(t in skill_markers for t in tokens)
+
+    def generate_search_queries(self, user_message: str, intent: Optional[str] = None) -> List[Dict]:
+        """Construit au moins 5 requêtes distinctes et classées, avec liens"""
+        analysis = self.analyze_query(user_message)
+        base = analysis['search_query'] or user_message
+
+        queries: List[Dict] = []
+        seen: Set[str] = set()
+
+        def add(q: str):
+            q_norm = q.strip()
+            if q_norm and q_norm not in seen:
+                seen.add(q_norm)
+                queries.append(self._with_links(q_norm, analysis.get("lieu")))
+
+        # Requête principale et brute
+        add(base)
+        add(user_message)
+
+        # Boost pour python/backend si présent dans le texte
+        tokens = {t for t in re.findall(r"\w+", user_message.lower())}
+        if "python" in tokens and "backend" in tokens:
+            add("developpeur backend python maroc")
+            add("python backend developer maroc")
+            add(f"{base} python backend")
+
+        if analysis['lieu']:
+            add(f"{base} {analysis['lieu']}")
+        if "remote" in analysis["intentions"]:
+            add(f"{base} télétravail")
+        for skill in analysis["competences"]:
+            add(f"offre {skill} {analysis['lieu'] or 'maroc'}")
+            add(f"{skill} junior emploi")
+
+        # Templates génériques
+        add(f"{base} recrutement maroc")
+        add(f"poste {base} 2025")
+        add(f"emploi {base} casablanca")
+
+        # Assurer un minimum de 5 requêtes
+        fallback_templates = [
+            f"{base} salaire",
+            f"{base} CDI",
+            f"{base} stage",
+            f"{base} offre d'emploi",
+            f"{base} opportunités"
+        ]
+        for extra in fallback_templates:
+            if len(queries) >= 5:
+                break
+            add(extra)
+
+        # Garder une taille raisonnable et ordonnée
+        return queries[:8]
+
+    def _with_links(self, query: str, location: Optional[str] = "Morocco") -> Dict:
+        loc = location or "Morocco"
+        return {
+            "query": query,
+            "google_link": LinkGenerator.generate_google_url(query, loc),
+            "indeed_link": LinkGenerator.generate_indeed_url(query, loc)
+        }
+
+    def build_job_results(self, job_matcher: JobMatcher, search_queries: List[Dict], top_k: int = 5) -> List[Dict]:
+        """Lance les recherches, fusionne et classe les résultats par score max, en filtrant les résultats hors-sujet"""
+        if not job_matcher:
+            return []
+
+        aggregated: Dict[int, Dict] = {}
+        for entry in search_queries:
+            query = entry["query"]
+            matches = job_matcher.search_jobs(query, top_k)
+            for idx, score in matches:
+                job_data = job_matcher.get_job_by_index(idx)
+                job_id = int(job_data.get("job_id", idx))
+                if job_id not in aggregated or score > aggregated[job_id]["score"]:
+                    aggregated[job_id] = {"score": score, "job": job_data, "source_query": query}
+
+        ranked = sorted(aggregated.values(), key=lambda x: x["score"], reverse=True)
+
+        # Filtrer les résultats pour correspondre davantage au texte de la requête principale
+        primary_query = search_queries[0]["query"] if search_queries else ""
+        primary_tokens = {t for t in re.findall(r"\w+", primary_query.lower()) if len(t) > 2}
+
+        def is_relevant(job_dict: Dict) -> bool:
+            title = job_dict.get("job_title", "").lower()
+            skills = job_dict.get("required_skills", "").lower()
+            desc = job_dict.get("description", "").lower()
+            # Au moins un token du user query doit apparaître dans le titre ou les compétences
+            return any(tok in title or tok in skills or tok in desc for tok in primary_tokens)
+
+        filtered_ranked = [item for item in ranked if is_relevant(item["job"])]
+
+        # Si tout est filtré, conserver les top_k originaux pour ne pas retourner 0
+        ranked = filtered_ranked if filtered_ranked else ranked
+        ranked = ranked[: top_k]
+
+        results: List[Dict] = []
+        for item in ranked:
+            job = item["job"]
+            urls = LinkGenerator.generate_all_urls(job.get("job_title", search_queries[0] if search_queries else ""))
+            results.append({
+                "job_id": job.get("job_id"),
+                "job_title": job.get("job_title", ""),
+                "category": job.get("category", ""),
+                "description": job.get("description", ""),
+                "required_skills": job.get("required_skills", ""),
+                "recommended_courses": job.get("recommended_courses", ""),
+                "avg_salary_mad": job.get("avg_salary_mad", ""),
+                "demand_level": job.get("demand_level", "Medium"),
+                "match_score": round(item["score"], 4),
+                "linkedin_url": urls.get("linkedin_url"),
+                "all_search_urls": urls,
+                "source_query": item["source_query"],
+            })
+        return results
+
+    def build_clarification_question(self, user_message: str) -> str:
+        """Crée une question de clarification, phrasing varié"""
+        variants = [
+            "Juste pour mieux cibler, quel métier ou domaine tu vises ?",
+            "Tu pensais à quel rôle exactement (ex: backend, data, design) ?",
+            "Dis-m'en un peu plus : quel type de poste veux-tu que je cherche ?",
+            "Super ! Quelle famille de métiers t'intéresse (tech, marketing, ops) ?",
+            "Top, vers quel job devrais-je orienter la recherche ?"
+        ]
+        # Choisir une variante pseudo-aléatoire en fonction du hash du message
+        idx = abs(hash(user_message)) % len(variants)
+        return variants[idx]
+
+    def save_session(self, session_id: str, original_query: str, question: str):
+        self.sessions[session_id] = {
+            "original_query": original_query,
+            "clarify_question": question,
+            "last_results": None,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    def get_session(self, session_id: str) -> Dict | None:
+        return self.sessions.get(session_id)
+
+    def update_session_results(self, session_id: str, results: Dict):
+        if session_id in self.sessions:
+            self.sessions[session_id]["last_results"] = results
     
     def generate_response(self, user_message: str, search_results: List[Dict]) -> Dict:
         """Génère une réponse naturelle avec les résultats - VERSION CORRIGÉE"""

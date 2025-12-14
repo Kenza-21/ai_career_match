@@ -2,11 +2,13 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional,Dict
 import os
 from services.assistant import career_assistant
-
+import json
 from models.job import Job, JobMatch, JobSearchResponse, SearchLinkResponse
 from services.matcher import JobMatcher
 from utils.link_generator import LinkGenerator
-from services.llm_assistant import career_assistant
+# Import séparé pour éviter les conflits
+from services.assistant import career_assistant as simple_assistant  # Renommer
+from services.llm_assistant import career_assistant as llm_assistant  # Renommer
 # Initialize the job matcher
 current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 csv_path = os.path.join(current_dir, "data", "jobs_morocco.csv")
@@ -142,7 +144,6 @@ async def get_job_search_link(job_title: str):
         linkedin_url=urls["linkedin_url"],
         indeed_url=urls["indeed_url"],
         google_url=urls["google_url"],
-        marocannonces_url=urls["marocannonces_url"],  # 
         rekrute_url=urls["rekrute_url"] 
     )
 
@@ -180,59 +181,120 @@ async def health_check():
 async def career_assistant_endpoint(
     message: str = Query(..., description="Message en langage naturel pour l'assistant")
 ):
-    """Assistant conversationnel pour la recherche d'emploi"""
+    """Assistant conversationnel pour la recherche d'emploi - VERSION AMÉLIORÉE"""
     if not job_matcher:
         raise HTTPException(status_code=500, detail="Job matcher not initialized")
     
     try:
         # Analyser le message avec l'assistant
-        analysis = career_assistant.analyze_query(message)
+        analysis = simple_assistant.analyze_query(message)
         
-        # Utiliser la requête optimisée pour la recherche
+        # Essayer plusieurs requêtes en cascade
+        all_matches = []
+        tried_queries = []
+        
+        # 1. Requête principale
         search_query = analysis['search_query'] or message
-        matches = job_matcher.search_jobs(search_query, top_k=10)
+        tried_queries.append(search_query)
+        
+        try:
+            matches = job_matcher.search_jobs(search_query, top_k=10)
+            all_matches.extend(matches)
+            print(f"✅ Requête principale trouvée: {len(matches)} résultats")
+        except Exception as e:
+            print(f"⚠️ Erreur avec requête principale: {e}")
+        
+        # 2. Essayer les fallbacks si pas assez de résultats
+        if len(all_matches) < 5 and analysis.get('fallback_queries'):
+            for fallback_query in analysis['fallback_queries'][:3]:  # Essayer max 3 fallbacks
+                tried_queries.append(fallback_query)
+                try:
+                    fallback_matches = job_matcher.search_jobs(fallback_query, top_k=5)
+                    # Ajouter seulement les nouveaux matches
+                    existing_indices = {idx for idx, _ in all_matches}
+                    for idx, score in fallback_matches:
+                        if idx not in existing_indices:
+                            all_matches.append((idx, score))
+                    print(f"✅ Fallback '{fallback_query}': {len(fallback_matches)} résultats")
+                except Exception as e:
+                    print(f"⚠️ Erreur avec fallback '{fallback_query}': {e}")
+        
+        # 3. Si toujours rien, essayer une recherche très générale
+        if len(all_matches) == 0:
+            general_queries = ["technologie", "informatique", "digital"]
+            for gen_query in general_queries:
+                tried_queries.append(gen_query)
+                try:
+                    gen_matches = job_matcher.search_jobs(gen_query, top_k=3)
+                    all_matches.extend(gen_matches)
+                    if gen_matches:
+                        print(f"✅ Recherche générale '{gen_query}': {len(gen_matches)} résultats")
+                        break
+                except Exception as e:
+                    print(f"⚠️ Erreur avec recherche générale: {e}")
+        
+        # Trier par score et limiter
+        all_matches.sort(key=lambda x: x[1], reverse=True)
+        top_matches = all_matches[:10]  # Prendre les 10 meilleurs
+        
+        print(f"📊 Total des requêtes essayées: {tried_queries}")
+        print(f"🎯 Résultats finaux: {len(top_matches)} jobs")
         
         # Préparer les résultats
         jobs_results = []
-        for idx, score in matches:
-            job_data = job_matcher.get_job_by_index(idx)
-            
-            # Générer toutes les URLs
-            all_urls = LinkGenerator.generate_all_urls(job_data.get('job_title', search_query))
-            
-            job_match = JobMatch(
-                job_id=job_data.get('job_id', idx + 1),
-                job_title=job_data.get('job_title', f'Poste {idx + 1}'),
-                category=job_data.get('category', 'Général'),
-                description=job_data.get('description', 'Description non disponible'),
-                required_skills=job_data.get('required_skills', 'Compétences variées'),
-                recommended_courses=job_data.get('recommended_courses', ''),
-                avg_salary_mad=job_data.get('avg_salary_mad', 'Non spécifié'),
-                demand_level=job_data.get('demand_level', 'Medium'),
-                match_score=round(score, 4),
-                linkedin_url=all_urls["linkedin_url"]  # Utiliser LinkedIn comme avant
-            )
-            jobs_results.append(job_match)
+        for idx, score in top_matches:
+            try:
+                job_data = job_matcher.get_job_by_index(idx)
+                
+                # Générer toutes les URLs
+                all_urls = LinkGenerator.generate_all_urls(job_data.get('job_title', search_query))
+                
+                job_match = JobMatch(
+                    job_id=job_data.get('job_id', idx + 1),
+                    job_title=job_data.get('job_title', f'Poste {idx + 1}'),
+                    category=job_data.get('category', 'Général'),
+                    description=job_data.get('description', 'Description non disponible'),
+                    required_skills=job_data.get('required_skills', 'Compétences variées'),
+                    recommended_courses=job_data.get('recommended_courses', ''),
+                    avg_salary_mad=job_data.get('avg_salary_mad', 'Non spécifié'),
+                    demand_level=job_data.get('demand_level', 'Medium'),
+                    match_score=round(score, 4),
+                    linkedin_url=all_urls["linkedin_url"]
+                )
+                jobs_results.append(job_match)
+                
+            except Exception as job_error:
+                print(f"⚠️ Error processing job {idx}: {job_error}")
+                continue
         
         # Convertir en dictionnaires pour ajouter les URLs supplémentaires
         jobs_with_all_urls = []
         for i, job in enumerate(jobs_results):
             job_dict = job.dict()
             # Ajouter toutes les URLs pour ce job
-            job_data = job_matcher.get_job_by_index(matches[i][0])
-            all_urls = LinkGenerator.generate_all_urls(job_data.get('job_title', search_query))
-            job_dict["all_search_urls"] = all_urls  # ← AJOUTER TOUTES LES URLs
+            if i < len(top_matches):
+                job_data = job_matcher.get_job_by_index(top_matches[i][0])
+                all_urls = LinkGenerator.generate_all_urls(job_data.get('job_title', search_query))
+                job_dict["all_search_urls"] = all_urls
             jobs_with_all_urls.append(job_dict)
         
-        # Générer la réponse complète de l'assistant
-        assistant_response = career_assistant.generate_response(message, jobs_with_all_urls)
+        # Générer la réponse de l'assistant
+        assistant_response = simple_assistant.generate_response(message, jobs_with_all_urls)
+        
+        # Ajouter des métadonnées de debug
+        assistant_response["debug_info"] = {
+            "tried_queries": tried_queries,
+            "total_candidates_found": len(all_matches),
+            "returned_jobs": len(jobs_results)
+        }
         
         return assistant_response
         
     except Exception as e:
         print(f"❌ Error in assistant: {str(e)}")
+        import traceback
+        print(f"🔍 Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Assistant error: {str(e)}")
-    
     
 @router.post("/smart-assistant")
 async def smart_career_assistant(
@@ -242,18 +304,27 @@ async def smart_career_assistant(
     """Assistant IA intelligent pour la recherche d'emploi"""
     try:
         print(f"🤖 Assistant reçoit: {message}")
-        
-        # Analyse avec le LLM
-        analysis = career_assistant.analyze_query(message)
-        
-        # VÉRIFIER SI C'EST UN STRING JSON ET LE PARSER
-        if isinstance(analysis, str):
-            try:
-                analysis = json.loads(analysis)
-            except:
-                analysis = {"intent": "clair", "response": analysis}
-        
-        # Si besoin de clarification
+
+        # Si le poste existe déjà dans le dataset, on ne consulte pas Ollama
+        direct_matches = job_matcher.search_jobs(message, top_k=5)
+        job_exists = len(direct_matches) > 0
+
+        analysis = {"intent": "clair", "search_query": message, "needs_clarification": False}
+
+        # Détection d'utilisateur perdu / vague
+        lost_markers = {"help", "aide", "lost", "perdu", "conseil", "orient"}
+        is_lost = any(token in lost_markers for token in message.lower().split())
+
+        if (not job_exists) or is_lost:
+            # 🔥 Utiliser llm_assistant seulement si nécessaire
+            analysis = llm_assistant.analyze_query(message)
+            if isinstance(analysis, str):
+                try:
+                    analysis = json.loads(analysis)
+                except:
+                    analysis = {"intent": "clair", "response": analysis}
+
+        # Gestion clarification si demandée par LLM
         if analysis.get('needs_clarification') and not clarification:
             return {
                 "assistant_response": analysis.get('response', ''),
@@ -261,13 +332,13 @@ async def smart_career_assistant(
                 "clarification_questions": analysis.get('clarification_questions', []),
                 "intent": analysis.get('intent', 'vague')
             }
-        
+
         # DÉTERMINER LA REQUÊTE DE RECHERCHE
         if clarification:
             search_query = f"{message} {clarification}"
         else:
             search_query = analysis.get('search_query', message)
-        
+
         # Si recherche vague ou vide
         if not search_query or search_query.strip() == "":
             return {
@@ -276,10 +347,10 @@ async def smart_career_assistant(
                 "clarification_questions": ["Quel domaine tech précis ?", "Quel type de poste ?"],
                 "intent": "vague"
             }
-        
+
         # 🔍 RECHERCHE AVEC LE MOTEUR EXISTANT
         matches = job_matcher.search_jobs(search_query, top_k=5)
-        
+
         # Préparer les résultats SANS SCORE
         results = []
         for idx, _ in matches:  # On ignore le score ici

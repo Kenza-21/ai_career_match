@@ -31,7 +31,6 @@ class SearchLinkResponse(BaseModel):
     linkedin_url: str
     indeed_url: str
     google_url: str
-    marocannonces_url: str  #
     rekrute_url: str   
     
 class AssistantResponse(BaseModel):

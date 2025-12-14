@@ -104,3 +104,26 @@ class JobMatcher:
     def get_categories(self) -> List[str]:
         """Get all available categories"""
         return self.df['category'].unique().tolist()
+
+    def has_job_title(self, query: str) -> bool:
+        """Check if a query matches a known job title in the dataset"""
+        if not query or query.strip() == "":
+            return False
+        q = self._preprocess_text(query)
+        titles = self.df['job_title'].fillna("").apply(self._preprocess_text)
+        return titles.str.contains(q, regex=False).any()
+
+    def semantic_match_title(self, query: str, threshold: float = 0.6) -> bool:
+        """
+        Lightweight semantic-ish match: uses TF-IDF on job titles only,
+        returns True if cosine similarity exceeds threshold.
+        """
+        if not query or query.strip() == "":
+            return False
+        titles = self.df['job_title'].fillna("").apply(self._preprocess_text).tolist()
+        # Reuse vectorizer on titles only (small corpus)
+        vectorizer = TfidfVectorizer(stop_words=None, ngram_range=(1, 2))
+        title_vectors = vectorizer.fit_transform(titles)
+        q_vec = vectorizer.transform([self._preprocess_text(query)])
+        sims = cosine_similarity(q_vec, title_vectors).flatten()
+        return float(sims.max()) >= threshold

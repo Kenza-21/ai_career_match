@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Form, UploadFile, File
 from services.cv_analyzer import cv_analyzer
-from utils.cv_parser import CVParser
+from services.resume_parser_api import resume_parser_api
 router = APIRouter(prefix="/cv", tags=["cv-analysis"])
 
 @router.post("/analyze")
@@ -98,26 +98,43 @@ async def analyze_cv_upload(
     cv_file: UploadFile = File(..., description="CV (PDF, DOCX, TXT)"),
     job_description: str = Form(..., description="Description de l'offre d'emploi")
 ):
-    """Analyse CV avec extraction améliorée"""
+    """Analyse CV avec extraction via ResumeParser.app API"""
     try:
         print(f"📄 Analyse CV: {cv_file.filename}")
         
-        # Extraction du texte
-        cv_text = CVParser.extract_text_from_cv(cv_file)
+        # Parse CV using ResumeParser.app API
+        api_response = resume_parser_api.parse_cv_with_resumeparser(cv_file)
+        
+        if not api_response.get("success"):
+            raise HTTPException(status_code=400, detail=api_response.get("error", "Erreur parsing CV"))
+        
+        # Extract text from API response
+        cv_text = resume_parser_api.get_cv_text_from_api_response(api_response)
         
         if len(cv_text.strip()) < 100:
             raise HTTPException(status_code=400, detail="CV trop court ou illisible")
         
-        # Extraction des sections
-        cv_sections = CVParser.parse_cv_sections(cv_text)
+        # Use API-provided sections if available, otherwise extract from text
+        cv_sections = {
+            "experience": "\n".join([str(exp) for exp in api_response.get("experience", [])]),
+            "education": "\n".join([str(edu) for edu in api_response.get("education", [])]),
+            "skills": ", ".join(api_response.get("skills", [])),
+            "summary": api_response.get("summary", ""),
+            "contact": str(api_response.get("contact", {})),
+            "projects": "",
+            "languages": "",
+            "certifications": ""
+        }
         
-        # 🔥 UTILISER LA NOUVELLE MÉTHODE AMÉLIORÉE
+        # Analyse CV vs Job Description
         analysis_result = cv_analyzer.analyze_cv_vs_job(cv_text, job_description)
         
-        # Ajouter les sections au résultat
+        # Add API-provided sections to result
         analysis_result["cv_sections"] = {k: v[:300] + "..." if len(v) > 300 else v 
                                           for k, v in cv_sections.items()}
         analysis_result["filename"] = cv_file.filename
+        analysis_result["api_skills"] = api_response.get("skills", [])
+        analysis_result["api_experience"] = api_response.get("experience", [])
         
         print(f"✅ Analyse terminée - Score: {analysis_result['match_score']}")
         print(f"   Compétences CV: {analysis_result['summary']['cv_skills_count']}")
