@@ -1,98 +1,99 @@
-\documentclass[10pt,a4paper]{article}
+\documentclass[9pt,a4paper]{article}
 
-% Packages
+% ========== PACKAGES ==========
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage[margin=0.5in]{geometry}
+\usepackage[margin=0.45in]{geometry}
 \usepackage{enumitem}
 \usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{multicol}
 
-% Hyperref setup
+% ========== HYPERREF SETUP ==========
 \hypersetup{
     colorlinks=true,
     linkcolor=black,
     urlcolor=blue,
-    pdftitle={CV - CareerMatch},
-    pdfauthor={CareerMatch}
+    pdftitle={CV - {{ name }}},
+    pdfauthor={{ name }}
 }
 
-% Custom settings
+% ========== CUSTOM SETTINGS ==========
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{0pt}
-\setlist[itemize]{left=0pt, label={}, nosep, itemsep=0pt, topsep=2pt}
+\setlength{\parskip}{1.5pt}
+\setlength{\topskip}{0pt}
+\setlength{\topmargin}{0pt}
+\setlength{\headheight}{0pt}
+\setlength{\headsep}{0pt}
+\setlength{\footskip}{0pt}
 
-% Section formatting
-\newcommand{\cvsection}[1]{
-    \vspace{6pt}
-    \textbf{\MakeUppercase{#1}}
-    \vspace{2pt}
-    \hrule
-    \vspace{4pt}
+% ========== COMPACT ITEMIZE ==========
+\setlist[itemize]{
+    leftmargin=*,
+    label={},
+    nosep,
+    itemsep=0.5pt,
+    topsep=0.5pt,
+    parsep=0pt,
+    partopsep=0pt
 }
 
-% Experience entry
+% ========== SECTION FORMATTING ==========
+\titleformat{\section}
+    {\normalfont\bfseries\small\uppercase}
+    {}
+    {0pt}
+    {}
+    [\vspace{-2pt}\titlerule[0.5pt]\vspace{1.5pt}]
+
+\titlespacing*{\section}
+    {0pt}
+    {3pt}
+    {1.5pt}
+
+% ========== CUSTOM COMMANDS ==========
+% Experience entry - compact
 \newcommand{\cventry}[4]{
     \textbf{#1} \hfill \textit{#2}\\
     \textit{#3} \hfill #4
-    \vspace{1pt}
+    \vspace{0.5pt}
 }
 
+% ========== DOCUMENT STARTS HERE ==========
 \begin{document}
 
-% Header
+% ========== HEADER ==========
+{{ HEADER }}
+
+% ========== PROFILE ==========
+{{ PROFILE }}
+
+% ========== EDUCATION ==========
+{{ EDUCATION }}
+
+% ========== PROFESSIONAL EXPERIENCE ==========
+{{ EXPERIENCE }}
+
+% ========== TECHNICAL SKILLS ==========
+{{ SKILLS }}
+
+% ========== PROJECTS ==========
+{{ PROJECTS }}
+
+% ========== CERTIFICATIONS ==========
+{{ CERTIFICATIONS }}
+
+% ========== LANGUAGES ==========
+{{ LANGUAGES }}
+
+% ========== FOOTER ==========
+\vfill
 \begin{center}
-    {\LARGE \textbf{{{ name }}}}\\
-    \vspace{2pt}
-    {{ location }} | \href{mailto:{{ email }}}{{{ email }}} | {{ phone }}
+    \small\textcolor{gray}{CV généré le \today{} • Format ATS-optimisé}
 \end{center}
-
-\vspace{4pt}
-
-% Profile
-\cvsection{Profil}
-{{ summary }}
-
-% Education
-\cvsection{Formation}
-{% for edu in education %}
-\cventry{{ edu.degree }}{}{{{ edu.institution }}}{{{ edu.details }}}
-{% if not loop.last %}\vspace{2pt}{% endif %}
-{% endfor %}
-
-% Professional Experience
-\cvsection{Expériences Professionnelles}
-{% for exp in experience %}
-\cventry{{ exp.position }}{{{ exp.start_date }} - {{ exp.end_date }}}{{{ exp.company }}}{{{ exp.location }}}
-\begin{itemize}
-{% for item in exp.description %}
-    \item {{ item }}
-{% endfor %}
-\end{itemize}
-{% if not loop.last %}\vspace{3pt}{% endif %}
-{% endfor %}
-
-% Technical Skills
-\cvsection{Compétences Techniques}
-\noindent
-{% for skill in skills %}
-{{ skill }}{% if not loop.last %} | {% endif %}
-{% endfor %}
-
-% Languages
-\cvsection{Langues}
-\noindent
-{% for lang in languages %}
-{{ lang }}{% if not loop.last %} | {% endif %}
-{% endfor %}
-
-% Certifications
-\cvsection{Certificats}
-\begin{itemize}
-{% for cert in certifications %}
-    \item {{ cert }}
-{% endfor %}
-\end{itemize}
 
 \end{document}

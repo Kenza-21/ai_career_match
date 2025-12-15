@@ -2,15 +2,21 @@ import re
 from typing import List, Dict
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from utils.text_normalizer import TextNormalizer, SynonymMapper, SkillMatcher
 
 class CVAnalyzer:
-    def __init__(self):
-        print("🔧 Initialisation de CVAnalyzer amélioré...")
+    def __init__(self, use_semantic_matching: bool = False):
+        print("🔧 Initialisation de CVAnalyzer - Extraction stricte...")
         self.vectorizer = TfidfVectorizer(
             max_features=1000,
             stop_words=['le', 'la', 'les', 'de', 'des', 'du', 'et', 'en', 'au', 'aux', 'à', 'dans', 'pour'],
             ngram_range=(1, 2)
         )
+        
+        # Initialize text processing modules
+        self.text_normalizer = TextNormalizer()
+        self.synonym_mapper = SynonymMapper()
+        self.skill_matcher = SkillMatcher(use_semantic=use_semantic_matching)
         
         # Compétences techniques étendues
         self.technical_skills = [
@@ -32,69 +38,101 @@ class CVAnalyzer:
             "git", "github", "gitlab", "jira", "figma", "photoshop"
         ]
         
-        # 🔥 NOUVEAU : Compétences par domaine pour mieux extraire de l'offre
-        self.domain_keywords = {
-            "data_science": ["python", "sql", "machine learning", "data analysis", "pandas", "numpy", "tensorflow", "pytorch", "data science"],
-            "web_development": ["javascript", "react", "html", "css", "node.js", "typescript", "vue", "angular", "frontend", "backend"],
-            "mobile": ["android", "ios", "flutter", "react native", "kotlin", "swift", "mobile"],
-            "cloud_devops": ["aws", "azure", "docker", "kubernetes", "jenkins", "terraform", "cloud", "devops"],
-            "backend": ["java", "spring", "python", "django", "flask", "sql", "mongodb", "api", "rest"]
-        }
-        
-        print("✅ CVAnalyzer amélioré initialisé avec succès")
+        print("✅ CVAnalyzer strict initialisé avec succès")
 
     def extract_skills_from_text(self, text: str) -> List[str]:
-        """Extrait les compétences techniques d'un texte"""
-        found_skills = []
-        text_lower = text.lower()
+        """
+        Extrait STRICTEMENT les compétences techniques d'un texte
+        Seulement ce qui est explicitement mentionné dans le texte
+        """
+        if not text:
+            return []
         
+        found_skills = []
+        normalized_text = self.text_normalizer.normalize_text(text)
+        
+        # STRICT matching only - no semantic, no token overlap
         for skill in self.technical_skills:
-            # Recherche avec word boundaries pour éviter les faux positifs
-            pattern = r'\b' + re.escape(skill) + r'\b'
-            if re.search(pattern, text_lower):
+            # Normalize skill for matching
+            norm_skill = self.synonym_mapper.normalize_skill(skill)
+            
+            # Check for exact match with word boundaries
+            pattern = r'\b' + re.escape(norm_skill) + r'\b'
+            if re.search(pattern, normalized_text):
                 found_skills.append(skill)
+                continue
+            
+            # Check for synonym variants
+            for variant, standard in self.synonym_mapper.synonym_map.items():
+                if standard == norm_skill:
+                    variant_pattern = r'\b' + re.escape(variant) + r'\b'
+                    if re.search(variant_pattern, normalized_text):
+                        found_skills.append(skill)
+                        break
         
         return list(set(found_skills))
 
     def extract_skills_from_job_description(self, job_description: str) -> List[str]:
-        """🔥 NOUVEAU : Extrait mieux les compétences d'une description d'offre"""
+        """
+        Extrait STRICTEMENT les compétences d'une description d'offre
+        Seulement ce qui est explicitement écrit dans le texte
+        """
+        if not job_description:
+            return []
+        
         job_skills = []
-        job_lower = job_description.lower()
+        normalized_jd = self.text_normalizer.normalize_text(job_description)
         
-        # 1. Rechercher les compétences techniques exactes
-        for skill in self.technical_skills:
-            pattern = r'\b' + re.escape(skill) + r'\b'
-            if re.search(pattern, job_lower):
+        # Sort skills by length (longest first) to match multi-word skills first
+        sorted_skills = sorted(self.technical_skills, key=len, reverse=True)
+        
+        # STRICT matching only
+        for skill in sorted_skills:
+            norm_skill = self.synonym_mapper.normalize_skill(skill)
+            
+            # Skip if already found
+            if skill in job_skills:
+                continue
+            
+            # Exact word boundary matching
+            if ' ' in norm_skill:
+                # Multi-word skill: exact phrase match
+                pattern = r'\b' + re.escape(norm_skill) + r'\b'
+            else:
+                # Single-word skill: word boundary
+                pattern = r'\b' + re.escape(norm_skill) + r'\b'
+            
+            # Check if pattern matches in normalized text
+            if re.search(pattern, normalized_jd, re.IGNORECASE):
                 job_skills.append(skill)
+                continue
+            
+            # Check for synonym variants
+            for variant, standard in self.synonym_mapper.synonym_map.items():
+                if standard == norm_skill:
+                    variant_pattern = r'\b' + re.escape(variant) + r'\b'
+                    if re.search(variant_pattern, normalized_jd, re.IGNORECASE):
+                        if skill not in job_skills:
+                            job_skills.append(skill)
+                        break
         
-        # 2. Rechercher par domaines si peu de compétences trouvées
-        if len(job_skills) < 3:
-            for domain, keywords in self.domain_keywords.items():
-                domain_matches = [kw for kw in keywords if kw in job_lower]
-                if len(domain_matches) >= 2:  # Au moins 2 mots-clés du domaine
-                    job_skills.extend(domain_matches)
+        # Remove duplicates
+        seen = set()
+        final_skills = []
+        for skill in job_skills:
+            norm_skill = self.synonym_mapper.normalize_skill(skill)
+            if norm_skill not in seen:
+                seen.add(norm_skill)
+                final_skills.append(skill)
         
-        # 3. Rechercher des patterns communs dans les offres
-        common_patterns = [
-            r"expérience en (\w+)", r"connaissance en (\w+)", r"maîtrise de (\w+)",
-            r"compétences en (\w+)", r"savoir (\w+)", r"expérience avec (\w+)"
-        ]
-        
-        for pattern in common_patterns:
-            matches = re.findall(pattern, job_lower)
-            for match in matches:
-                if isinstance(match, str) and match in self.technical_skills:
-                    job_skills.append(match)
-        
-        # Dédoublonnage et limitation
-        unique_skills = list(set(job_skills))
-        return unique_skills[:15]  # Limiter à 15 compétences max
+        return final_skills
 
-    def calculate_match_score_improved(self, cv_skills: List[str], job_skills: List[str], cv_text: str, job_text: str) -> Dict:
-        """🔥 NOUVEAU : Calcule un score de matching amélioré avec détails"""
-        
+    def calculate_strict_match_score(self, cv_skills: List[str], job_skills: List[str], cv_text: str, job_text: str) -> Dict:
+        """
+        Calcule un score de matching STRICT basé uniquement sur ce qui est explicitement mentionné
+        """
         if not job_skills:
-            # Fallback : calculer avec TF-IDF sur le texte complet
+            # Fallback : calculer avec TF-IDF
             try:
                 vectors = self.vectorizer.fit_transform([cv_text, job_text])
                 tfidf_score = cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
@@ -104,7 +142,8 @@ class CVAnalyzer:
                     "cv_skills_count": len(cv_skills),
                     "job_skills_count": 0,
                     "common_skills_count": 0,
-                    "coverage_percentage": 0
+                    "coverage_percentage": 0,
+                    "strict_match": True
                 }
             except:
                 return {
@@ -113,293 +152,225 @@ class CVAnalyzer:
                     "cv_skills_count": len(cv_skills),
                     "job_skills_count": 0,
                     "common_skills_count": 0,
-                    "coverage_percentage": 0
+                    "coverage_percentage": 0,
+                    "strict_match": True
                 }
         
-        # Calcul basé sur les compétences
-        common_skills = set(cv_skills) & set(job_skills)
+        # STRICT comparison - only exact matches
+        common_skills = []
+        
+        for job_skill in job_skills:
+            norm_job = self.synonym_mapper.normalize_skill(job_skill)
+            
+            # Check for exact match in CV skills
+            for cv_skill in cv_skills:
+                norm_cv = self.synonym_mapper.normalize_skill(cv_skill)
+                
+                # EXACT match only
+                if norm_cv == norm_job:
+                    common_skills.append(job_skill)
+                    break
+                
+                # Check synonym mapping
+                if norm_cv in self.synonym_mapper.synonym_map.values() and norm_job in self.synonym_mapper.synonym_map.values():
+                    # Both are standard forms, check if they map to same standard
+                    cv_standard = self.synonym_mapper.get_standard_form(cv_skill)
+                    job_standard = self.synonym_mapper.get_standard_form(job_skill)
+                    if cv_standard and job_standard and cv_standard == job_standard:
+                        common_skills.append(job_skill)
+                        break
+        
         coverage = len(common_skills) / len(job_skills) if job_skills else 0
         
-        # Pondération par importance
-        important_skills = ["python", "javascript", "java", "sql", "react", "aws", "docker", "machine learning"]
-        important_common = [skill for skill in common_skills if skill in important_skills]
-        important_score = len(important_common) / len([s for s in job_skills if s in important_skills]) if any(s in important_skills for s in job_skills) else 0
-        
-        # Score final
-        skill_based_score = coverage * 0.6 + important_score * 0.4
+        # Score final basé uniquement sur la couverture stricte
+        skill_based_score = coverage
         
         # Combiner avec TF-IDF pour plus de robustesse
         try:
             vectors = self.vectorizer.fit_transform([cv_text, job_text])
             tfidf_score = cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
-            final_score = skill_based_score * 0.7 + tfidf_score * 0.3
+            final_score = skill_based_score * 0.8 + tfidf_score * 0.2  # Poids plus fort sur matching strict
         except:
             final_score = skill_based_score
         
         return {
             "final_score": round(final_score, 2),
-            "method": "skills_analysis",
+            "method": "strict_skills_analysis",
             "cv_skills_count": len(cv_skills),
             "job_skills_count": len(job_skills),
             "common_skills_count": len(common_skills),
             "coverage_percentage": round(coverage * 100, 1),
-            "important_matches": important_common
+            "common_skills": common_skills,
+            "strict_match": True
         }
 
-    def identify_skill_gaps(self, cv_skills: List[str], job_skills: List[str]) -> List[Dict]:
-        """Identifie les écarts de compétences avec plus de détails"""
-        missing_skills = [skill for skill in job_skills if skill not in cv_skills]
+    def identify_strict_skill_gaps(self, cv_skills: List[str], job_skills: List[str]) -> List[Dict]:
+        """
+        Identifie STRICTEMENT les écarts de compétences
+        Basé uniquement sur ce qui est explicitement dans le job et pas dans le CV
+        """
+        # Normalize all skills for strict comparison
+        norm_cv_skills = {self.synonym_mapper.normalize_skill(s): s for s in cv_skills}
+        norm_job_skills = {self.synonym_mapper.normalize_skill(s): s for s in job_skills}
+        
+        missing_skills = []
+        
+        for job_norm, job_orig in norm_job_skills.items():
+            found = False
+            
+            # Check exact match
+            if job_norm in norm_cv_skills:
+                found = True
+            else:
+                # Check via standard forms
+                job_standard = self.synonym_mapper.get_standard_form(job_orig)
+                if job_standard:
+                    for cv_norm, cv_orig in norm_cv_skills.items():
+                        cv_standard = self.synonym_mapper.get_standard_form(cv_orig)
+                        if cv_standard and cv_standard == job_standard:
+                            found = True
+                            break
+            
+            if not found:
+                missing_skills.append(job_orig)
         
         skill_gaps = []
         for skill in missing_skills:
-            # Déterminer l'importance
-            if skill in ["python", "javascript", "sql", "aws", "react", "java"]:
-                gap_severity = "high"
-                importance = "Essentielle"
-            elif skill in ["docker", "kubernetes", "typescript", "node.js", "machine learning"]:
-                gap_severity = "medium"
-                importance = "Importante"
-            else:
-                gap_severity = "low"
-                importance = "Secondaire"
-            
             skill_gaps.append({
                 "skill_name": skill,
                 "required_level": "Demandée dans l'offre",
                 "current_level": "Non présente dans le CV",
-                "gap_severity": gap_severity,
-                "importance": importance,
-                "suggestion": f"Considérez une formation en {skill}"
+                "gap_severity": "high" if skill in ["python", "javascript", "sql", "java"] else "medium",
+                "strict_missing": True,
+                "explicit_in_jd": True,
+                "explicit_in_cv": False
             })
         
         return skill_gaps
 
-    def get_training_recommendations(self, missing_skills: List[str]) -> List[Dict]:
-        """Retourne des recommandations de formations améliorées"""
-        recommendations = []
+    def analyze_cv_vs_job_strict(self, cv_text: str, job_description: str) -> Dict:
+        """
+        Analyse STRICTE CV vs Offre d'emploi
+        Seulement ce qui est explicitement écrit dans les textes
+        """
+        print("🔍 Début de l'analyse STRICTE CV vs Offre...")
         
-        # Base de formations enrichie
-        courses_db = {
-            "python": [
-                {"platform": "Coursera", "name": "Python for Everybody", "url": "https://coursera.org/specializations/python", "duration": "3 months", "level": "Beginner"},
-                {"platform": "Udemy", "name": "Complete Python Bootcamp", "url": "https://www.udemy.com/course/complete-python-bootcamp/", "duration": "22 hours", "level": "Beginner"}
-            ],
-            "javascript": [
-                {"platform": "Coursera", "name": "JavaScript Basics", "url": "https://coursera.org/learn/javascript", "duration": "1 month", "level": "Beginner"},
-                {"platform": "freeCodeCamp", "name": "JavaScript Algorithms", "url": "https://freecodecamp.org/learn/javascript-algorithms", "duration": "300 hours", "level": "Intermediate"}
-            ],
-            "react": [
-                {"platform": "Coursera", "name": "Front-End with React", "url": "https://coursera.org/learn/react", "duration": "1 month", "level": "Intermediate"},
-                {"platform": "Scrimba", "name": "Learn React", "url": "https://scrimba.com/learn/learnreact", "duration": "12 hours", "level": "Beginner"}
-            ],
-            "sql": [
-                {"platform": "Coursera", "name": "SQL for Data Science", "url": "https://coursera.org/learn/sql-for-data-science", "duration": "1 month", "level": "Beginner"},
-                {"platform": "Khan Academy", "name": "Intro to SQL", "url": "https://khanacademy.org/computing/computer-programming/sql", "duration": "15 hours", "level": "Beginner"}
-            ],
-            "aws": [
-                {"platform": "Coursera", "name": "AWS Fundamentals", "url": "https://coursera.org/specializations/aws-fundamentals", "duration": "2 months", "level": "Beginner"},
-                {"platform": "AWS Training", "name": "AWS Cloud Practitioner", "url": "https://aws.amazon.com/training/", "duration": "6 hours", "level": "Beginner"}
-            ],
-            "docker": [
-                {"platform": "Udemy", "name": "Docker Mastery", "url": "https://www.udemy.com/course/docker-mastery/", "duration": "20 hours", "level": "Intermediate"},
-                {"platform": "Docker Docs", "name": "Get Started with Docker", "url": "https://docs.docker.com/get-started/", "duration": "3 hours", "level": "Beginner"}
-            ],
-            "machine learning": [
-                {"platform": "Coursera", "name": "Machine Learning by Andrew Ng", "url": "https://coursera.org/learn/machine-learning", "duration": "3 months", "level": "Intermediate"},
-                {"platform": "fast.ai", "name": "Practical Deep Learning", "url": "https://course.fast.ai/", "duration": "2 months", "level": "Intermediate"}
-            ]
-        }
-        
-        for skill in missing_skills[:4]:  # Max 4 compétences
-            if skill in courses_db:
-                for course in courses_db[skill][:2]:  # Max 2 cours par compétence
-                    recommendations.append({
-                        "skill": skill,
-                        "platform": course["platform"],
-                        "course_name": course["name"],
-                        "url": course["url"],
-                        "duration": course["duration"],
-                        "level": course["level"],
-                        "source": "curated_database",
-                        "priority": "high" if skill in ["python", "javascript", "sql"] else "medium"
-                    })
-        
-        return recommendations
-
-    def generate_key_phrases(self, job_skills: List[str], cv_skills: List[str]) -> List[Dict]:
-        """Génère des phrases clés pour le CV avec plus de variété"""
-        key_phrases = []
-        
-        phrases_dict = {
-            "python": [
-                "Développement d'applications Python robustes et maintenables",
-                "Implémentation de solutions Python pour résoudre des problèmes complexes"
-            ],
-            "javascript": [
-                "Création d'interfaces utilisateur dynamiques avec JavaScript moderne",
-                "Développement d'applications web interactives avec JavaScript/TypeScript"
-            ],
-            "react": [
-                "Développement de composants React réutilisables avec hooks et state management",
-                "Création d'interfaces utilisateur performantes avec React et écosystème moderne"
-            ],
-            "sql": [
-                "Conception et optimisation de bases de données relationnelles avec SQL",
-                "Requêtage et modélisation de données avec SQL pour applications business"
-            ],
-            "aws": [
-                "Déploiement et gestion d'infrastructures cloud scalables sur AWS",
-                "Configuration de services AWS pour applications haute disponibilité"
-            ],
-            "docker": [
-                "Containerisation d'applications avec Docker pour déploiement reproductible",
-                "Création et gestion d'environnements Docker pour développement et production"
-            ],
-            "git": [
-                "Gestion de versions collaborative avec Git et bonnes pratiques de branching",
-                "Workflow Git pour développement collaboratif et intégration continue"
-            ],
-            "machine learning": [
-                "Implémentation de modèles de machine learning pour résoudre des problèmes business",
-                "Développement de pipelines data science avec preprocessing et modélisation"
-            ]
-        }
-        
-        for skill in job_skills[:6]:  # 6 premières compétences
-            if skill not in cv_skills and skill in phrases_dict:
-                phrases = phrases_dict[skill]
-                key_phrases.append({
-                    "skill": skill,
-                    "current_situation": f"Compétence '{skill}' non mentionnée dans le CV",
-                    "suggested_phrases": phrases,
-                    "recommended_sections": ["Expérience professionnelle", "Compétences techniques", "Projets"],
-                    "impact": "Améliorer la pertinence pour les systèmes ATS"
-                })
-        
-        return key_phrases
-
-    def generate_ats_recommendations(self, cv_text: str, job_description: str) -> List[Dict]:
-        """Génère des recommandations détaillées pour l'optimisation ATS"""
-        recommendations = []
-        
+        # Extraction STRICTE des compétences
         cv_skills = self.extract_skills_from_text(cv_text)
         job_skills = self.extract_skills_from_job_description(job_description)
-        missing_keywords = [skill for skill in job_skills if skill not in cv_skills]
         
-        # 1. Mots-clés manquants
-        if missing_keywords:
-            recommendations.append({
-                "category": "Optimisation Mots-clés",
-                "issue": f"{len(missing_keywords)} compétences demandées non présentes",
-                "solution": f"Ajouter ces compétences clés: {', '.join(missing_keywords[:5])}",
-                "priority": "Élevée",
-                "action_items": [
-                    "Inclure dans la section Compétences techniques",
-                    "Mentionner dans les descriptions d'expérience",
-                    "Ajouter dans le profil/summary"
-                ]
-            })
+        print(f"✅ Compétences CV (strict): {len(cv_skills)} trouvées: {cv_skills}")
+        print(f"✅ Compétences Offre (strict): {len(job_skills)} trouvées: {job_skills}")
         
-        # 2. Structure et format
-        word_count = len(cv_text.split())
-        if word_count > 800:
-            recommendations.append({
-                "category": "Structure du CV",
-                "issue": f"CV trop long ({word_count} mots), risque de rejet ATS",
-                "solution": "Réduire à 400-600 mots maximum",
-                "priority": "Moyenne",
-                "action_items": [
-                    "Être concis dans les descriptions",
-                    "Privilégier les phrases courtes",
-                    "Supprimer les informations redondantes"
-                ]
-            })
-        
-        # 3. Contact et informations clés
-        if not re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', cv_text):
-            recommendations.append({
-                "category": "Informations de contact",
-                "issue": "Email manquant dans le CV",
-                "solution": "Ajouter une section contact avec email professionnel",
-                "priority": "Élevée",
-                "action_items": ["Ajouter email en haut du CV", "Inclure téléphone et LinkedIn si disponible"]
-            })
-        
-        # 4. Chiffres et résultats
-        number_count = len(re.findall(r'\b\d+\b', cv_text))
-        if number_count < 3:
-            recommendations.append({
-                "category": "Quantification des résultats",
-                "issue": "Peu de chiffres pour démontrer l'impact",
-                "solution": "Ajouter des chiffres concrets (%, €, nombre de personnes, etc.)",
-                "priority": "Moyenne",
-                "action_items": [
-                    "Quantifier les réalisations",
-                    "Utiliser des pourcentages d'amélioration",
-                    "Mentionner des chiffres business"
-                ]
-            })
-        
-        return recommendations
-
-    def analyze_cv_vs_job(self, cv_text: str, job_description: str) -> Dict:
-        """Analyse complète CV vs Offre d'emploi - VERSION AMÉLIORÉE"""
-        print("🔍 Début de l'analyse CV améliorée...")
-        
-        # Extraction compétences
-        cv_skills = self.extract_skills_from_text(cv_text)
-        job_skills = self.extract_skills_from_job_description(job_description)  # 🔥 NOUVEAU
-        
-        print(f"✅ Compétences CV: {len(cv_skills)} trouvées")
-        print(f"✅ Compétences Offre: {job_skills}")
-        
-        # 🔥 NOUVEAU : Calcul du matching amélioré
-        score_analysis = self.calculate_match_score_improved(cv_skills, job_skills, cv_text, job_description)
+        # Calcul du matching STRICT
+        score_analysis = self.calculate_strict_match_score(cv_skills, job_skills, cv_text, job_description)
         match_score = score_analysis["final_score"]
         
-        # Analyse écarts
-        skill_gaps = self.identify_skill_gaps(cv_skills, job_skills)
+        # Analyse écarts STRICTS
+        skill_gaps = self.identify_strict_skill_gaps(cv_skills, job_skills)
         missing_skills = [gap["skill_name"] for gap in skill_gaps]
         
-        # Recommandations
-        training_recommendations = self.get_training_recommendations(missing_skills)
-        key_phrases = self.generate_key_phrases(job_skills, cv_skills)
-        ats_recommendations = self.generate_ats_recommendations(cv_text, job_description)
-        
-        # Évaluation globale détaillée
-        if match_score >= 0.7:
-            assessment = "✅ Excellent matching - Candidature fortement recommandée"
-            confidence = "Élevée"
-        elif match_score >= 0.5:
-            assessment = "⚠️ Bon matching - Quelques compétences à développer"
-            confidence = "Moyenne"
-        elif match_score >= 0.3:
-            assessment = "⚠️ Matching moyen - Formation recommandée avant candidature"
-            confidence = "Faible"
+        # Évaluation globale basée sur matching strict
+        if match_score >= 0.8:
+            assessment = "✅ Excellent matching strict - Toutes compétences clés présentes"
+            confidence = "Élevée (basée sur texte explicite)"
+        elif match_score >= 0.6:
+            assessment = "⚠️ Bon matching strict - La plupart des compétences présentes"
+            confidence = "Moyenne (basée sur texte explicite)"
+        elif match_score >= 0.4:
+            assessment = "⚠️ Matching strict moyen - Compétences principales manquantes"
+            confidence = "Faible (basée sur texte explicite)"
         else:
-            assessment = "❌ Faible matching - Envisagez d'autres offres plus alignées"
-            confidence = "Très faible"
+            assessment = "❌ Faible matching strict - Peu de compétences correspondantes"
+            confidence = "Très faible (basée sur texte explicite)"
         
-        print(f"✅ Analyse terminée - Score: {match_score} - Méthode: {score_analysis['method']}")
+        print(f"✅ Analyse STRICTE terminée - Score: {match_score}")
+        print(f"✅ Méthode: {score_analysis['method']}")
+        print(f"✅ Compétences communes (strict): {score_analysis.get('common_skills', [])}")
         
         return {
             "match_score": match_score,
             "score_analysis": score_analysis,
-            "cv_skills": cv_skills[:20],  # Limiter l'affichage
+            "cv_skills": cv_skills,
             "job_skills": job_skills,
             "skill_gaps": skill_gaps,
             "missing_skills": missing_skills,
-            "training_recommendations": training_recommendations[:5],
-            "key_phrases": key_phrases[:5],
-            "ats_recommendations": ats_recommendations[:3],
+            "strict_analysis": True,
             "overall_assessment": assessment,
             "confidence_level": confidence,
             "summary": {
                 "cv_skills_count": len(cv_skills),
                 "job_skills_count": len(job_skills),
-                "common_skills": list(set(cv_skills) & set(job_skills))[:10],
-                "coverage": f"{score_analysis.get('coverage_percentage', 0)}% des compétences demandées"
+                "common_skills": score_analysis.get('common_skills', []),
+                "coverage": f"{score_analysis.get('coverage_percentage', 0)}% des compétences demandées (strict)",
+                "coverage_percentage": score_analysis.get('coverage_percentage', 0),
+                "methodology": "Extraction et comparaison STRICTE basée uniquement sur le texte explicite"
             }
+        }
+
+    def get_exact_matches_report(self, cv_text: str, job_description: str) -> Dict:
+        """
+        Génère un rapport détaillé des matches EXACTS entre CV et offre
+        """
+        cv_skills = self.extract_skills_from_text(cv_text)
+        job_skills = self.extract_skills_from_job_description(job_description)
+        
+        exact_matches = []
+        partial_matches = []
+        no_matches = []
+        
+        for job_skill in job_skills:
+            job_norm = self.synonym_mapper.normalize_skill(job_skill)
+            found_exact = False
+            found_partial = False
+            
+            for cv_skill in cv_skills:
+                cv_norm = self.synonym_mapper.normalize_skill(cv_skill)
+                
+                # EXACT match
+                if cv_norm == job_norm:
+                    exact_matches.append({
+                        "job_skill": job_skill,
+                        "cv_skill": cv_skill,
+                        "match_type": "exact",
+                        "normalized_form": job_norm
+                    })
+                    found_exact = True
+                    break
+            
+            if not found_exact:
+                # Check for partial (synonym) match
+                job_standard = self.synonym_mapper.get_standard_form(job_skill)
+                if job_standard:
+                    for cv_skill in cv_skills:
+                        cv_standard = self.synonym_mapper.get_standard_form(cv_skill)
+                        if cv_standard == job_standard:
+                            partial_matches.append({
+                                "job_skill": job_skill,
+                                "cv_skill": cv_skill,
+                                "match_type": "synonym",
+                                "standard_form": job_standard
+                            })
+                            found_partial = True
+                            break
+            
+            if not found_exact and not found_partial:
+                no_matches.append({
+                    "job_skill": job_skill,
+                    "match_type": "none",
+                    "normalized_form": job_norm
+                })
+        
+        return {
+            "exact_matches": exact_matches,
+            "partial_matches": partial_matches,
+            "no_matches": no_matches,
+            "total_job_skills": len(job_skills),
+            "total_cv_skills": len(cv_skills),
+            "exact_match_count": len(exact_matches),
+            "partial_match_count": len(partial_matches),
+            "no_match_count": len(no_matches),
+            "exact_match_percentage": round(len(exact_matches) / len(job_skills) * 100, 1) if job_skills else 0
         }
 
 # Instance globale

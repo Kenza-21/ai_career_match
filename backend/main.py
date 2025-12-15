@@ -5,6 +5,9 @@ import os
 from routes.job_routes import router as job_router
 from routes.cv_routes import router as cv_router
 from routes.search_routes import router as search_router
+from routes.ats_routes import router as ats_router
+from routes.assistant_routes import router as assistant_router
+from routes.smart_assistant_routes import router as smart_assistant_router
 
 # Create FastAPI app
 app = FastAPI(
@@ -28,6 +31,9 @@ app.add_middleware(
 app.include_router(job_router)
 app.include_router(cv_router) 
 app.include_router(search_router)
+app.include_router(ats_router)
+app.include_router(assistant_router)  # Basic Assistant
+app.include_router(smart_assistant_router)  # Smart Assistant with LLM
 
 @app.get("/")
 async def root():
