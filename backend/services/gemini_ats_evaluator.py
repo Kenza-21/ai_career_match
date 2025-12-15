@@ -8,7 +8,7 @@ from typing import Dict, Optional
 import google.generativeai as genai
 
 # API Key
-GEMINI_API_KEY = "AIzaSyA1vogI-pn8-rLWtLwwpW1iJH78tk-b14U"
+GEMINI_API_KEY = "xx"
 
 # Configure Gemini
 genai.configure(api_key=GEMINI_API_KEY)
