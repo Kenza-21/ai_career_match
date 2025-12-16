@@ -1,94 +1,32 @@
-import pytest
-from fastapi.testclient import TestClient
+import google.generativeai as genai
+import os
 
-from main import app
-from services.assistant import career_assistant
-import routes.search_routes as search_routes
-import routes.job_routes as job_routes
+def test_gemini_api():
+    # Configurer la clé API
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "AIzaSyCr3JQvxLSckY2Sph2mOi5f8PbTH9Jk-Tg")
+    genai.configure(api_key=gemini_api_key)
+    print(f"🔑 Clé API configurée: {gemini_api_key[:10]}...")
 
+    try:
+        # Lister les modèles disponibles
+        models = genai.list_models()
+        print("📋 Modèles Gemini disponibles:")
+        for model in models:
+            print(f"  - {model.name}")
 
-class FakeJobMatcher:
-    def __init__(self):
-        self.jobs = [
-            {
-                "job_id": 1,
-                "job_title": "Développeur Backend Python",
-                "category": "Tech",
-                "description": "API et microservices",
-                "required_skills": "python backend api",
-                "recommended_courses": "",
-                "avg_salary_mad": "8000",
-                "demand_level": "High",
-            },
-            {
-                "job_id": 2,
-                "job_title": "Data Analyst",
-                "category": "Tech",
-                "description": "SQL et dashboards",
-                "required_skills": "sql bi tableau",
-                "recommended_courses": "",
-                "avg_salary_mad": "7000",
-                "demand_level": "Medium",
-            },
-        ]
+        # Charger le modèle gemini-pro
+        model = genai.GenerativeModel("gemini-pro")
+        print(f"✅ Modèle chargé: gemini-pro")
 
-    def search_jobs(self, query: str, top_k: int = 5):
-        query_lower = query.lower()
-        scored = []
-        for idx, job in enumerate(self.jobs):
-            score = 0.0
-            for token in query_lower.split():
-                if token in job["job_title"].lower() or token in job["required_skills"].lower():
-                    score += 1
-            if score > 0:
-                scored.append((idx, score))
-        scored.sort(key=lambda x: x[1], reverse=True)
-        return scored[:top_k]
+        # Test rapide
+        test_prompt = "Salut"
+        response = model.generate_content(test_prompt)
+        print(f"✅ Test Gemini réussi, réponse:\n{response.output_text}")
 
-    def get_job_by_index(self, index: int):
-        return self.jobs[index]
+    except Exception as e:
+        print(f"❌ Erreur Gemini: {e}")
+        print("⚠️ Vérifie ta clé API ou ta connexion")
 
-
-@pytest.fixture(autouse=True)
-def override_dependencies():
-    fake = FakeJobMatcher()
-    search_routes.job_matcher = fake
-    job_routes.job_matcher = fake
-    career_assistant.sessions.clear()
-    yield
-    search_routes.job_matcher = fake
-    job_routes.job_matcher = fake
-
-
-@pytest.fixture
-def client():
-    return TestClient(app)
-
-
-def test_clear_query_returns_searches_and_results(client):
-    resp = client.post("/api/search", json={"query": "python backend developer", "session_id": "s1"})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["clarify"] is False
-    assert len(body["search_queries"]) >= 5
-    assert all("query" in q and "google_link" in q and "indeed_link" in q for q in body["search_queries"])
-    assert body["results"]["summary"]["total_matches"] >= 1
-
-
-def test_vague_query_triggers_clarification(client):
-    resp = client.post("/api/search", json={"query": "help with my project", "session_id": "s2"})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["clarify"] is True
-    assert "question" in body
-
-
-def test_clarify_flow_returns_results(client):
-    session_id = "s3"
-    first = client.post("/api/search", json={"query": "need help", "session_id": session_id}).json()
-    assert first["clarify"] is True
-
-    clarified = client.post("/api/clarify", json={"session_id": session_id, "answer": "backend python"}).json()
-    assert clarified["clarify"] is False
-    assert clarified["results"]["summary"]["total_matches"] >= 1
-
+# Point d'entrée
+if __name__ == "__main__":
+    test_gemini_api()

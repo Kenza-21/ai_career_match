@@ -1,8 +1,8 @@
 {
   "parsed": {
     "name": "Kenza Bellamine",
-    "title": "Élève Ingénieur",
-    "brief": "Étudiante en ingénierie informatique, option MIAGE, je suis actuellement à la recherche d'un stage PFE de six mois à partir de février 2026. Curieuse et motivée, je souhaite mettre mes compétences en développement logiciel et en résolution de problèmes au service de votre équipe, afin de contribuer activement à la réussite des projets de votre organisation.",
+    "title": "Élève Ingénieur - Data & IA",
+    "brief": "Étudiante en ingénierie informatique, option MIAGE, passionnée par la Data et l’Intelligence Artificielle, je suis actuellement à la recherche d’un stage PFE de 6mois à partir de mi-février 2026. Curieuse et motivée, je souhaite mettre mes compétences en Machine Learning, Big Data et analyse prédictive au service de votre équipe, afin de contribuer activement à la réussite des projets de votre organisation.",
     "contact": {
       "location_city": "Casablanca",
       "location_state": null,
@@ -16,7 +16,7 @@
     },
     "employment_history": [
       {
-        "title": "Stage en Data & IA appliqués à la fraude bancaire ISO20022",
+        "title": "Stagiaire en Data & IA appliqués à la fraude bancaire ISO20022",
         "company": "Wal-IT Services",
         "company_website": null,
         "location": "Casablanca, Maroc",
@@ -24,24 +24,21 @@
         "end_date": "2025-09-30",
         "roles": [
           {
-            "role": "Data & IA Intern",
+            "role": "Stage en Data & IA appliqués à la fraude bancaire ISO20022",
             "responsibilities": [
-              "Conception d’un pipeline ETL complet (extraction XML, nettoyage, transformation, enrichissement géographique, chargement PostgreSQL) pour préparer les données.",
-              "Développement de modules data : authentification sécurisée (Bcrypt, JWT-ready), géocodage et calcul de distances (Geopy, OSM), gestion des sessions et reporting automatisé.",
-              "Mise en place d’un système de détection de fraude hybride combinant règles métier et modèles IA/ML (Isolation Forest, XGBoost) avec feature engineering et scoring de risque.",
-              "Production de rapports analytiques et visualisations (ReportLab, Plotly, Power BI) pour l’aide à la décision."
+              "Conception pipeline ETL complet (extraction XML PACS.008, validation XSD, nettoyage, transformation, enrichissement géographique, chargement PostgreSQL)",
+              "Développement modules : authentification sécurisée (Bcrypt, JWT-ready), géocodage et calcul distances (Geopy, OSM, Haversine), gestion profils utilisateurs",
+              "Système détection fraude hybride combinant règles métier configurables et modèles IA/ML (Isolation Forest, XGBoost) avec score de risque combiné",
+              "Production rapports analytiques et visualisations (ReportLab, Plotly, Power BI) avec envoi automatique par email",
+              "Développement application web interactive (Streamlit) : tableau de bord, gestion transactions, interface administrateur, personnalisation règles",
+              "Modélisation base de données PostgreSQL optimisée avec contraintes d’intégrité, indexation et gestion des performances"
             ]
           }
         ],
-        "responsibilities": [
-          "Conception d’un pipeline ETL complet (extraction XML, nettoyage, transformation, enrichissement géographique, chargement PostgreSQL) pour préparer les données.",
-          "Développement de modules data : authentification sécurisée (Bcrypt, JWT-ready), géocodage et calcul de distances (Geopy, OSM), gestion des sessions et reporting automatisé.",
-          "Mise en place d’un système de détection de fraude hybride combinant règles métier et modèles IA/ML (Isolation Forest, XGBoost) avec feature engineering et scoring de risque.",
-          "Production de rapports analytiques et visualisations (ReportLab, Plotly, Power BI) pour l’aide à la décision."
-        ]
+        "responsibilities": []
       },
       {
-        "title": "Stage en Développement d'une application web",
+        "title": "Stagiaire en Développement Full-Stack",
         "company": "Banque Centrale Populaire",
         "company_website": null,
         "location": "Casablanca, Maroc",
@@ -49,25 +46,19 @@
         "end_date": "2024-08-31",
         "roles": [
           {
-            "role": "Web Development Intern",
+            "role": "Stage en Développement Full-Stack - Gestion Dématérialisée des Titres d’Importation",
             "responsibilities": [
-              "Application web avec Python et Flask pour gérer les flux XML dans le cadre de la dématérialisation des titres d'importation.",
-              "Conception d'une interface utilisateur intuitive avec HTML, CSS, JavaScript.",
-              "Modélisation des processus métier via des diagrammes UML.",
-              "Implémentation de mécanismes pour le traitement, l’archivage et la validation des fichiers XML via XSD.",
-              "Développement d’un système de génération et validation de fichiers XML conformes.",
-              "Gestion de la base de données SQLite avec optimisation des requêtes et stockage structuré."
+              "Développement d’une application web Python/Flask pour automatiser le traitement et la validation des flux XML PORTNET",
+              "Conception d’interface utilisateur intuitive pour la visualisation et le suivi des fichiers traités",
+              "Implémentation d’un pipeline ETL complet : extraction, nettoyage et structuration des données XML avec validation via schémas XSD",
+              "Gestion et optimisation de base de données SQLite (requêtes complexes, indexation, stockage structuré)",
+              "Modélisation UML des processus métiers et du cycle de traitement des données",
+              "Développement d’un système de recherche multicritères et d’archivage automatique",
+              "Mise en œuvre de l’authentification sécurisée avec gestion des rôles et monitoring des dossiers"
             ]
           }
         ],
-        "responsibilities": [
-          "Application web avec Python et Flask pour gérer les flux XML dans le cadre de la dématérialisation des titres d'importation.",
-          "Conception d'une interface utilisateur intuitive avec HTML, CSS, JavaScript.",
-          "Modélisation des processus métier via des diagrammes UML.",
-          "Implémentation de mécanismes pour le traitement, l’archivage et la validation des fichiers XML via XSD.",
-          "Développement d’un système de génération et validation de fichiers XML conformes.",
-          "Gestion de la base de données SQLite avec optimisation des requêtes et stockage structuré."
-        ]
+        "responsibilities": []
       }
     ],
     "education": [
@@ -75,47 +66,56 @@
         "degree": "Ingénierie en Informatique et Réseaux (MIAGE)",
         "institution_name": "Ecole Marocaine des Sciences de l’Ingénieur (EMSI)",
         "institution_country": "Maroc",
-        "start_date": "2021-09-01",
+        "start_date": "2021-01-01",
         "end_date": null
       },
       {
         "degree": "Baccalauréat en Sciences Physiques (BIOF) – Mention Très Bien",
         "institution_name": "Lycée Jabri",
         "institution_country": "Maroc",
-        "start_date": "2020-09-01",
-        "end_date": "2021-06-30"
+        "start_date": "2020-01-01",
+        "end_date": "2021-01-01"
       }
     ],
     "skills": [
-      "C",
-      "C++",
-      "C#",
-      "Python",
-      "Java",
-      ".NET",
-      "SpringBoot",
-      ".NET Core",
+      "Machine Learning",
+      "Deep Learning",
+      "TensorFlow",
+      "Scikit-learn",
       "XGBoost",
       "Isolation Forest",
-      "TensorFlow",
-      "Sckit-learn",
-      "Deep learning",
+      "ANN",
+      "CNN",
+      "LSTM",
+      "Prétraitement et ingénierie des données",
+      "Pandas",
+      "NumPy",
+      "Vision par ordinateur",
+      "Visualisation de données",
+      "Plotly",
+      "Hadoop",
       "Data Warehouse",
       "Data Mining",
-      "Hadoop",
-      "SQL Tuning",
-      "Transact-SQL",
-      "PL/SQL",
+      "pipelines ETL",
+      "Python",
+      "SQL",
       "PostgreSQL",
-      "SQLite",
-      "SQLServer",
+      "SQL Server",
       "MongoDB",
-      "Android (Java, Firebase)",
-      "Flutter (Dart, Firebase)",
+      "SQLite",
+      "PL/SQL",
+      "C#",
+      "Java",
+      ".NET Core",
+      "Spring Boot",
       "Docker",
       "Azure",
       "Azure DevOps",
       "Git",
+      "Android",
+      "Firebase",
+      "Flutter",
+      "Dart",
       "Méthodologie Agile (Scrum)",
       "Jira",
       "MS Project",
@@ -124,11 +124,11 @@
       "Unix"
     ],
     "courses": [
-      "Virtual Networks in Azure | Coursera",
-      "Software Engineering: Software Design and Project Management | Coursera",
-      "IBM | Introduction to Artificial Intelligence (AI)| Coursera",
-      "OCI DevOps Professional (En cours) | Oracle",
-      "IBM | Data Science (En cours) | Coursera"
+      "IBM Introduction to Artificial Intelligence (AI)",
+      "IBM Data Science (En cours)",
+      "Software Engineering: Software Design and Project Management",
+      "OCI DevOps Professional (En cours)",
+      "Virtual Networks in Azure"
     ],
     "languages": [
       "Français",
@@ -138,25 +138,25 @@
     "references": [],
     "derived": {
       "years_of_experience": 1,
-      "approximate_age": 22
+      "approximate_age": null
     },
     "driving_license_present": null,
     "driving_license_id": null
   },
-  "normalized_text": "KENZA BELLAMINE\n\nÉLÈVE INGÉNIEUR\n\nPROFIL  \nÉtudiante en ingénierie informatique, option MIAGE, je suis actuellement à la recherche d'un stage PFE de six mois à partir de février 2026. Curieuse et motivée, je souhaite mettre mes compétences en développement logiciel et en résolution de problèmes au service de votre équipe, afin de contribuer activement à la réussite des projets de votre organisation.\n\nCONTACT  \nTéléphone : +212608636651  \nEmail : kenzabellamine21@gmail.com  \nLocalisation : Casablanca, Maroc\n\nFORMATION  \n2021 - Présent  \nEcole Marocaine des Sciences de l’Ingénieur (EMSI), Casablanca  \nIngénierie en Informatique et Réseaux (MIAGE)\n\n2020 - 2021  \nLycée Jabri, Casablanca  \nBaccalauréat en Sciences Physiques (BIOF) – Mention Très Bien\n\nCOMPÉTENCES TECHNIQUES  \n- Langages de programmation : C, C++, C#, Python, Java, .NET, SpringBoot, .NET Core  \n- Intelligence Artificielle & Machine Learning : XGBoost, Isolation Forest, TensorFlow, Scikit-learn, Deep Learning  \n- Data & Big Data : Data Warehouse, Data Mining, Hadoop  \n- Bases de données : SQL Tuning, Transact-SQL, PL/SQL, PostgreSQL, SQLite, SQL Server, MongoDB  \n- Développement mobile : Programmation native Android (Java, Firebase), Cross-platform Flutter (Dart, Firebase)  \n- Cloud & DevOps : Docker, Azure, Azure DevOps, Git  \n- Gestion de projet & Modélisation : Méthodologie Agile (Scrum), Jira, MS Project, UML  \n- Systèmes d’exploitation : Administration Windows, Unix\n\nCERTIFICATS  \n- Virtual Networks in Azure | Coursera  \n- Software Engineering: Software Design and Project Management | Coursera  \n- IBM | Introduction to Artificial Intelligence (AI) | Coursera  \n- OCI DevOps Professional (En cours) | Oracle  \n- IBM | Data Science (En cours) | Coursera\n\nEXPÉRIENCES PROFESSIONNELLES  \n\nWal-IT Services – Casablanca  \nAOÛT - SEPTEMBRE 2025  \nStage en Data & IA appliqués à la fraude bancaire ISO20022  \n- Conception d’un pipeline ETL complet (extraction XML, nettoyage, transformation, enrichissement géographique, chargement PostgreSQL) pour préparer les données  \n- Développement de modules data : authentification sécurisée (Bcrypt, JWT-ready), géocodage et calcul de distances (Geopy, OSM), gestion des sessions et reporting automatisé  \n- Mise en place d’un système de détection de fraude hybride combinant règles métier et modèles IA/ML (Isolation Forest, XGBoost) avec feature engineering et scoring de risque  \n- Production de rapports analytiques et visualisations (ReportLab, Plotly, Power BI) pour l’aide à la décision\n\nBanque Centrale Populaire – Casablanca  \nJUILLET – AOÛT 2024  \nStage en Développement d'une application web de gestion des flux XML échangés avec PORTNET pour la dématérialisation des titres d'importation  \n- Application web avec Python et Flask pour gérer les flux XML dans le cadre de la dématérialisation des titres d'importation  \n- Conception d'une interface utilisateur intuitive avec HTML, CSS, JavaScript  \n- Modélisation des processus métier via des diagrammes UML  \n- Implémentation de mécanismes pour le traitement, l’archivage et la validation des fichiers XML via XSD  \n- Développement d’un système de génération et validation de fichiers XML conformes  \n- Gestion de la base de données SQLite avec optimisation des requêtes et stockage structuré\n\nPROJETS ACADÉMIQUES  \n\nNettoyage et Visualisation de Données  \nRéalisation avec Python, SQL et Power BI\n\nApplication mobile de Reconnaissance Faciale - Deep Learning (En cours)  \nRéalisation avec Flutter, TensorFlow et Firebase\n\nEMSI SmartPresence – Application Android de gestion des présences  \nTechnologies : Java, GoogleMaps, Firebase\n\nApplication SmartParking  \nTechnologies : Spring Boot, Microservices, MySQL, Thymeleaf, REST API\n\nApplication de Gestion de Collection Personnelle  \nRéalisation avec .NET, Entity Framework\n\nEMSIExchange – Application web d’échange de biens entre étudiants  \nTechnologies : Vite, React, TypeScript, Shadcn-UI, Tailwind CSS, Supabase\n\nLANGUES  \n- Français : Très bonne maîtrise  \n- Anglais : Très bonne maîtrise  \n- Arabe : Langue maternelle\n\nCOMPÉTENCES PERSONNELLES  \n- Créativité  \n- Esprit d’équipe  \n- Sens relationnel  \n- Curiosité intellectuelle",
+  "normalized_text": "KENZA BELLAMINE\n\nÉLÈVE INGÉNIEUR - Data & IA\n\nPROFIL\nÉtudiante en ingénierie informatique, option MIAGE, passionnée par la Data et l’Intelligence Artificielle, je suis actuellement à la recherche d’un stage PFE de 6 mois à partir de mi-février 2026. Curieuse et motivée, je souhaite mettre mes compétences en Machine Learning, Big Data et analyse prédictive au service de votre équipe, afin de contribuer activement à la réussite des projets de votre organisation.\n\nCONTACT\n+212608636651  \nkenzabellamine21@gmail.com  \nCasablanca, Maroc\n\nFORMATION\n2021 - Présent  \nEcole Marocaine des Sciences de l’Ingénieur (EMSI), Casablanca  \nIngénierie en Informatique et Réseaux (MIAGE)\n\n2020 - 2021  \nLycée Jabri, Casablanca  \nBaccalauréat en Sciences Physiques (BIOF) – Mention Très Bien\n\nCOMPETENCES TECHNIQUES\n\n- Intelligence Artificielle & Data Science : Machine Learning et Deep Learning (TensorFlow, Scikit-learn, XGBoost, Isolation Forest, ANN, CNN, LSTM), Prétraitement et ingénierie des données (Pandas, NumPy), Vision par ordinateur, Visualisation de données (Plotly)\n- Big Data & Data Engineering : Hadoop, Data Warehouse, Data Mining, pipelines ETL (Python, SQL)\n- Bases de données : PostgreSQL, SQL Server, MongoDB, SQLite, PL/SQL\n- Langages de programmation : Python, C#, Java, .NET Core, Spring Boot\n- Cloud & DevOps : Docker, Azure, Azure DevOps, Git\n- Développement mobile : Android (Java, Firebase), Flutter (Dart, Firebase)\n- Gestion de projet & Modélisation : Méthodologie Agile (Scrum), Jira, MS Project, UML\n- Systèmes d’exploitation : Windows, Unix\n\nEXPERIENCES PROFESSIONNELLES\n\nWal-IT Services – Casablanca  \nAoût - Septembre 2025  \nStage en Data & IA appliqués à la fraude bancaire ISO20022  \n- Conception pipeline ETL complet (extraction XML PACS.008, validation XSD, nettoyage, transformation, enrichissement géographique, chargement PostgreSQL)  \n- Développement modules : authentification sécurisée (Bcrypt, JWT-ready), géocodage et calcul distances (Geopy, OSM, Haversine), gestion profils utilisateurs  \n- Système détection fraude hybride combinant règles métier configurables et modèles IA/ML (Isolation Forest, XGBoost) avec score de risque combiné  \n- Production rapports analytiques et visualisations (ReportLab, Plotly, Power BI) avec envoi automatique par email  \n- Développement application web interactive (Streamlit) : tableau de bord, gestion transactions, interface administrateur, personnalisation règles  \n- Modélisation base de données PostgreSQL optimisée avec contraintes d’intégrité, indexation et gestion des performances\n\nBanque Centrale Populaire – Casablanca  \nJuillet - Août 2024  \nStage en Développement Full-Stack - Gestion Dématérialisée des Titres d’Importation  \n- Développement d’une application web Python/Flask pour automatiser le traitement et la validation des flux XML PORTNET  \n- Conception d’interface utilisateur intuitive pour la visualisation et le suivi des fichiers traités  \n- Implémentation d’un pipeline ETL complet : extraction, nettoyage et structuration des données XML avec validation via schémas XSD  \n- Gestion et optimisation de base de données SQLite (requêtes complexes, indexation, stockage structuré)  \n- Modélisation UML des processus métiers et du cycle de traitement des données  \n- Développement d’un système de recherche multicritères et d’archivage automatique  \n- Mise en œuvre de l’authentification sécurisée avec gestion des rôles et monitoring des dossiers\n\nCERTIFICATS\n- IBM | Introduction to Artificial Intelligence (AI) | Coursera  \n- IBM | Data Science (En cours) | Coursera  \n- Software Engineering: Software Design and Project Management | Coursera  \n- OCI DevOps Professional (En cours) | Oracle  \n- Virtual Networks in Azure | Coursera\n\nPROJETS ACADEMIQUES\n\nPlateforme de Gestion des Carrières avec Matching IA – React, Python (FastAPI, Scikit-learn, spaCy/NLP), PostgreSQL, Power BI  \n- Implémentation d’une plateforme RH intelligente intégrant un moteur de recommandation basé sur l’IA pour suggérer des parcours professionnels et formations, avec analyse des tendances et visualisations sur Power BI.\n\nApplication de Reconnaissance Faciale (Deep Learning) – Flutter, TensorFlow, OpenCV, Firebase  \n- Création d’une application mobile utilisant un modèle de Deep Learning pour la reconnaissance faciale en temps réel, incluant un pipeline de traitement d’images et une gestion sécurisée des données via Firebase.\n\nAnalyse des ventes de produits – Python, SQL, Power BI  \n- Nettoyage et exploration d’un dataset de ventes de produits, création de visualisations pour identifier les articles les plus populaires et générer des insights simples pour optimiser les décisions commerciales.\n\nLANGUES\n- Français : Très bonne maîtrise  \n- Anglais : Très bonne maîtrise  \n- Arabe : Langue maternelle\n\nCOMPETENCES PERSONNELLES\n- Créativité  \n- Esprit d’équipe  \n- Sens du relationnel  \n- Curiosité intellectuelle",
   "file_metadata": {
     "Title": "CV_Kenza Bellamine.pdf",
     "Creator": "Canva",
     "Producer": "Canva",
-    "CreationDate": "D:20251205100945+00'00'",
-    "ModDate": "D:20251205100944+00'00'",
+    "CreationDate": "D:20251130194434+00'00'",
+    "ModDate": "D:20251130194434+00'00'",
     "Keywords": "DAGzu1bq0yY,BAGaJPMetzY,0",
     "Author": "Kenza Workspace"
   },
   "meta": {
     "message": "Resume parsed successfully.",
-    "file_hash": "176b3408dda5aa4136319564ace87a0d",
+    "file_hash": "b1fedb29d56d80c210365005ac074b50",
     "balance": 423,
-    "runtime_ms": 99
+    "runtime_ms": 35
   }
 }

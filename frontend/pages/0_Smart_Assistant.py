@@ -8,7 +8,7 @@ from services.api_client import api_client
 from components.layout import render_header, render_footer
 from components.job_results import render_job_listings
 
-
+import re
 # Initialize conversation history in session state
 if "smart_assistant_messages" not in st.session_state:
     st.session_state.smart_assistant_messages = []
@@ -33,6 +33,20 @@ def render_chat_bubble(message: str, is_user: bool, timestamp: str = None, is_co
         bubble_color = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
     
     # Create HTML for chat bubble
+    cleaned_message = message.replace('\n', '<br>')
+    
+    # CHANGEMENT ICI : Si c'est une liste numérotée, la formater proprement
+    if re.search(r'\d+\.\s+', message) and '\n' in message:
+        lines = message.split('\n')
+        formatted_lines = []
+        for line in lines:
+            if re.match(r'\d+\.\s+', line):
+                formatted_lines.append(f'<strong>{line}</strong><br>')
+            elif line.strip():
+                formatted_lines.append(f'{line}<br>')
+        cleaned_message = ''.join(formatted_lines)
+    
+    # Create HTML for chat bubble
     bubble_html = f"""
     <div class="chat-container">
         <div class="{bubble_class}" style="background: {bubble_color if is_coach and not is_user else ''};">
@@ -42,14 +56,13 @@ def render_chat_bubble(message: str, is_user: bool, timestamp: str = None, is_co
                 {f'<span class="bubble-timestamp">{timestamp}</span>' if timestamp else ''}
             </div>
             <div class="bubble-content">
-                {message}
+                {cleaned_message}
             </div>
         </div>
     </div>
     """
     st.markdown(bubble_html, unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
-
 
 def render_job_links_bubble(search_urls: list):
     """Render job links in a special bubble"""
@@ -276,7 +289,7 @@ def render_chat_interface():
     
     # Display conversation history
     if st.session_state.smart_assistant_messages:
-        st.markdown("### 💬 Conversation avec le Coach Karim")
+        st.markdown("### 💬 Conversation avec le Coach ")
         st.markdown('<div class="coach-indicator">🧠 Coach IA</div>', unsafe_allow_html=True)
         st.markdown("---")
         
@@ -324,8 +337,11 @@ def render_chat_interface():
                         render_job_listings(normalized_jobs)
     else:
         # CHANGEMENT ICI : Message d'accueil du coach
+        st.markdown("### 🧠 Coach Karim - Prêt à vous aider")
+        st.markdown("---")
+        
         st.info("""
-        👋 **Bonjour ! Je suis Karim, votre coach de carrière tech marocain.** 
+        Bonjour ! Je suis Karim, votre coach de carrière tech marocain. 
         
         Avec 15 ans d'expérience dans le recrutement au Maroc, je suis là pour vous aider à :
         - Trouver votre voie dans la tech marocaine
@@ -333,13 +349,12 @@ def render_chat_interface():
         - Obtenir des conseils pratiques sur le marché local
         - Trouver les meilleures opportunités d'emploi
         
-        **Parlez-moi naturellement, comme à un mentor :**
+        Parlez-moi naturellement, comme à un mentor :
         - "Je suis perdu, je veux travailler en tech"
         - "Dev frontend vs backend au Maroc ?"
         - "Quelles opportunités en data science à Casablanca ?"
         - "Comment me reconvertir dans le développement ?"
         """)
-
 
 def handle_smart_assistant_request(message: str, clarification: str = None):
     """Handle smart assistant API request and update conversation"""
@@ -376,9 +391,9 @@ def handle_smart_assistant_request(message: str, clarification: str = None):
             
             # Handle clarification if needed
             if response.get("needs_clarification") and response.get("clarification_questions"):
-                clarification_msg = "**Pour mieux vous aider, Karim vous demande :**\n\n"
+                clarification_msg = "Pour mieux vous aider, Karim vous demande :\n\n"
                 for i, question in enumerate(response.get("clarification_questions", []), 1):
-                    clarification_msg += f"**{i}.** {question}\n"
+                    clarification_msg += f"{i}.{question}\n"
                 add_message_to_history(
                     clarification_msg, 
                     is_user=False, 
@@ -453,29 +468,29 @@ def main():
     render_header("Coach Karim - Assistant Intelligent", "🧠")
     
     st.markdown(
-        """
-        ### **Coach de Carrière Tech Marocain**
+    """
+    ### Coach de Carrière Tech Marocain
         
-        **Karim** est votre coach personnel spécialisé dans le marché tech marocain. 
-        Avec 15 ans d'expérience dans le recrutement, il vous guide comme un vrai mentor.
-        
-        **✨ Ce que Karim fait différemment :**
-        - 🧠 **Pense comme un coach humain**, pas comme un bot
-        - 🇲🇦 **Connaît le marché marocain** (salaires, entreprises, tendances)
-        - 💬 **Réponses naturelles** avec empathie et franchise
-        - 🎯 **Analyse votre vraie situation** derrière les mots
-        - ⚖️ **Compare objectivement** les options de carrière
-        
-        **🎯 Scénarios où Karim excelle :**
-        1. **"Je suis perdu dans ma carrière tech"** → Orientation personnalisée
-        2. **"Dev frontend vs backend au Maroc ?"** → Comparaison détaillée
-        3. **"Conseils pour débuter en data science"** → Guide pratique étape par étape
-        4. **"Quelles entreprises recrutent à Casablanca ?"** → Insights marché local
-        5. **"Comment me reconvertir ?"** → Stratégie de transition
-        
-        **💡 Astuce :** Parlez-lui naturellement, comme à un mentor expérimenté !
-        """
-    )
+    Karim est votre coach personnel spécialisé dans le marché tech marocain. 
+    Avec 15 ans d'expérience dans le recrutement, il vous guide comme un vrai mentor.
+    
+    ✨ Ce que Karim fait différemment :
+    - 🧠 Pense comme un coach humain, pas comme un bot
+    - 🇲🇦 Connaît le marché marocain (salaires, entreprises, tendances)
+    - 💬 Réponses naturelles avec empathie et franchise
+    - 🎯 Analyse votre vraie situation derrière les mots
+    - ⚖️ Compare objectivement les options de carrière
+    
+    🎯 Scénarios où Karim excelle :
+    1. "Je suis perdu dans ma carrière tech" → Orientation personnalisée
+    2. "Dev frontend vs backend au Maroc ?" → Comparaison détaillée
+    3. "Conseils pour débuter en data science" → Guide pratique étape par étape
+    4. "Quelles entreprises recrutent à Casablanca ?" → Insights marché local
+    5. "Comment me reconvertir ?" → Stratégie de transition
+    
+    💡 Astuce : Parlez-lui naturellement, comme à un mentor expérimenté !
+    """
+)
     
     st.divider()
     

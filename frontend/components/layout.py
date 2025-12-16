@@ -13,4 +13,4 @@ def render_header(title: str, icon: str = "🤖"):
 def render_footer():
     """Render page footer"""
     st.divider()
-    st.caption("© 2025 Assistant++ - Powered by AI & FastAPI")
+    st.caption("© 2025 Assistant - Powered by AI & FastAPI")

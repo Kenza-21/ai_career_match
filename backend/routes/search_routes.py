@@ -31,15 +31,17 @@ class ClarifyRequest(BaseModel):
 router = APIRouter(prefix="/api", tags=["assistant-v2"])
 
 
+# Dans la fonction _llm_chat_message de search_routes.py
 def _llm_chat_message(user_query: str) -> Optional[str]:
-    """Génère un message conversationnel via Ollama quand dispo."""
+    """Génère un message conversationnel via Gemini."""
     try:
         analysis = career_coach.coach_thinking(user_query)
         if isinstance(analysis, dict) and analysis.get("response"):
             return analysis["response"]
         if isinstance(analysis, str):
             return analysis
-    except Exception:
+    except Exception as e:
+        print(f"⚠️ Erreur Gemini dans search_routes: {e}")
         return None
     return None
 
