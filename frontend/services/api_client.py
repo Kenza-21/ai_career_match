@@ -13,7 +13,7 @@ class APIClient:
     
     def __init__(self):
         self.base_url = os.getenv("ASSISTANT_API_URL", "http://localhost:8000")
-        self.timeout = 120
+        self.timeout = 600
     
     def _make_request(
         self, 
@@ -195,6 +195,20 @@ class APIClient:
             raise Exception(f"API request failed: {str(e)}")
 
 
+   # Add to APIClient class in api_client.py
+
+    def generate_resume(self, resume_data: Dict) -> BytesIO:
+        """Generate resume from structured data"""
+        try:
+            response = requests.post(
+                f"{self.base_url}/api/generate-resume",
+                json=resume_data,
+                timeout=self.timeout
+            )
+            response.raise_for_status()
+            return BytesIO(response.content)
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Failed to generate resume: {str(e)}")
 # Singleton instance
 api_client = APIClient()
 

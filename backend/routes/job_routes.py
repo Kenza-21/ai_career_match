@@ -6,6 +6,9 @@ import json
 from models.job import Job, JobMatch, JobSearchResponse, SearchLinkResponse
 from services.matcher import JobMatcher
 from utils.link_generator import LinkGenerator
+from fastapi.responses import StreamingResponse
+from services.builder.generator_standard import generate_structured_resume
+import json
 # Note: Assistant endpoints moved to assistant_routes.py and smart_assistant_routes.py
 # Initialize the job matcher
 current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -67,6 +70,9 @@ async def get_all_jobs():
         import traceback
         print(f"🔍 Full traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+    
+
+        return {"error": str(e)}    
 
 @router.get("/search", response_model=JobSearchResponse)
 async def search_jobs(

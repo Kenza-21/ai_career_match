@@ -39,6 +39,14 @@ def generate_latex_from_json(cv_data: Dict) -> str:
         phone=cv_data.get("phone", ""),
         location=cv_data.get("location", "")
     )
+    print(f"DEBUG generate_latex_from_json:")
+    print(f"  Keys in cv_data: {list(cv_data.keys())}")
+    print(f"  Projects data exists: {'projects' in cv_data}")
+    if 'projects' in cv_data:
+        print(f"  Projects count: {len(cv_data['projects'])}")
+        print(f"  Projects type: {type(cv_data['projects'])}")
+        if cv_data['projects']:
+            print(f"  First project: {cv_data['projects'][0]}")
     
     profile = generate_profile_section(cv_data.get("summary", ""))
     education = generate_education_section(cv_data.get("education", []))
@@ -48,6 +56,12 @@ def generate_latex_from_json(cv_data: Dict) -> str:
     certifications = generate_certifications_section(cv_data.get("certifications", []))
     languages = generate_languages_section(cv_data.get("languages", []))
     
+    
+      # Debug projects section generation
+    projects_data = cv_data.get("projects", [])
+    print(f"  DEBUG: Calling generate_projects_section with: {projects_data}")
+    projects = generate_projects_section(projects_data)
+    print(f"  DEBUG: Generated projects section: {projects[:200]}...")
     # Replace placeholders in template
     latex = template
     name_escaped = escape_latex(cv_data.get("name", ""))
@@ -76,9 +90,9 @@ def generate_header_section(
     location: str
 ) -> str:
     """Generate header section with name and contact information"""
-    header = "\\begin{center}\n"
+    header = ""
     name_escaped = escape_latex(name)
-    header += f"    {{\\Large \\textbf{{{name_escaped}}}}}\\\\\n"
+    header += f"{{\\Large \\textbf{{{name_escaped}}}}}\\\\\n"
     
     if title:
         title_escaped = escape_latex(title)
@@ -97,10 +111,12 @@ def generate_header_section(
         contact_parts.append(escape_latex(phone))
     
     header += " | ".join(contact_parts)
-    header += "\n\\end{center}\n"
+    header += "\n"
     header += "\\vspace{3pt}\n"
     
     return header
+
+
 
 
 def generate_profile_section(summary: str) -> str:
@@ -108,8 +124,8 @@ def generate_profile_section(summary: str) -> str:
     if not summary:
         return ""
     
-    profile = "\\section*{Profil}\n"
-    profile += f"\\small {escape_latex(summary)}\n"
+    # REMOVED: \section*{Profil}
+    profile = f"\\small {escape_latex(summary)}\n"
     profile += "\\vspace{2pt}\n"
     
     return profile
@@ -131,7 +147,7 @@ def generate_education_section(education_list: List[Dict]) -> str:
     if not education_list:
         return ""
     
-    section = "\\section*{Formation}\n"
+    section = ""  # REMOVED: \section*{Formation}\n
     
     for i, edu in enumerate(education_list):
         degree = escape_latex(edu.get("degree", ""))
@@ -173,7 +189,7 @@ def generate_experience_section(experience_list: List[Dict]) -> str:
     if not experience_list:
         return ""
     
-    section = "\\section*{Expériences Professionnelles}\n"
+    section = ""  # REMOVED: \section*{Expériences Professionnelles}\n
     
     for i, exp in enumerate(experience_list):
         position = escape_latex(exp.get("position", ""))
@@ -216,7 +232,7 @@ def generate_skills_section(skills_list: List[str]) -> str:
     if not unique_skills:
         return ""
     
-    section = "\\section*{Compétences Techniques}\n"
+    section = ""  # REMOVED: \section*{Compétences Techniques}\n
     section += "\\small\n"
     section += "\\noindent\n"
     
@@ -230,26 +246,64 @@ def generate_skills_section(skills_list: List[str]) -> str:
 
 def generate_projects_section(projects_list: List[Dict]) -> str:
     """
-    Generate projects section from projects list.
+    Generate projects section from projects list - more flexible format.
     
-    Expected format for each project:
-    {
-        "title": str,
-        "technologies": str (optional),
-        "description": str,
-        "achievements": List[str] (optional)
-    }
+    Accepts multiple formats:
+    Format 1: {"title": "Project", "technologies": "React", "description": "..."}
+    Format 2: {"project": "Project", "tech": "React", "desc": "..."}
+    Format 3: {"name": "Project", "tools": "React", "details": "..."}
+    Format 4: Just a string description
     """
     if not projects_list:
         return ""
     
-    section = "\\section*{Projets}\n"
+    section = ""
     
     for i, project in enumerate(projects_list):
-        title = escape_latex(project.get("title", ""))
-        technologies = escape_latex(project.get("technologies", ""))
-        description = escape_latex(project.get("description", ""))
+        # Try different possible keys for title
+        title = ""
+        possible_title_keys = ["title", "project", "name", "project_title", "project_name"]
+        for key in possible_title_keys:
+            if project.get(key):
+                title = escape_latex(str(project[key]))
+                break
         
+        # Try different possible keys for technologies
+        technologies = ""
+        possible_tech_keys = ["technologies", "tech", "tools", "skills", "stack", "technology"]
+        for key in possible_tech_keys:
+            if project.get(key):
+                tech_value = project[key]
+                if isinstance(tech_value, list):
+                    technologies = ", ".join([escape_latex(str(t)) for t in tech_value])
+                else:
+                    technologies = escape_latex(str(tech_value))
+                break
+        
+        # Try different possible keys for description
+        description = ""
+        possible_desc_keys = ["description", "desc", "details", "summary", "overview"]
+        for key in possible_desc_keys:
+            if project.get(key):
+                desc_value = project[key]
+                if isinstance(desc_value, list):
+                    description = " ".join([escape_latex(str(d)) for d in desc_value])
+                else:
+                    description = escape_latex(str(desc_value))
+                break
+        
+        # If project is just a string, use it as description
+        if not title and not description and isinstance(project, str):
+            description = escape_latex(project)
+        
+        # If no title but we have description, create a simple bullet point
+        if not title and description:
+            section += f"• {description}"
+            if i < len(projects_list) - 1:
+                section += "\\\\\n"
+            continue
+        
+        # If we have a title, format it properly
         if title:
             if technologies:
                 section += f"\\textbf{{{title}}} - {technologies}\\\\\n"
@@ -259,12 +313,33 @@ def generate_projects_section(projects_list: List[Dict]) -> str:
             if description:
                 section += f"{description}\n"
             
-            # Add achievements if available
-            achievements = project.get("achievements", [])
+            # Try different possible keys for achievements/bullet points
+            achievements = []
+            possible_achievement_keys = ["achievements", "responsibilities", "tasks", "highlights", "bullet_points", "points"]
+            for key in possible_achievement_keys:
+                if project.get(key):
+                    achievements_value = project[key]
+                    if isinstance(achievements_value, list):
+                        achievements = [escape_latex(str(a)) for a in achievements_value]
+                    elif isinstance(achievements_value, str):
+                        # Split by common delimiters if it's a string
+                        achievements = [escape_latex(a.strip()) for a in achievements_value.split(';') if a.strip()]
+                    break
+            
+            # If no achievements but we have a list in the project dict, try to use list items
+            if not achievements and isinstance(project, dict):
+                # Look for any list values that aren't already used
+                for key, value in project.items():
+                    if isinstance(value, list) and key not in possible_title_keys + possible_tech_keys + possible_desc_keys + possible_achievement_keys:
+                        if value and isinstance(value[0], str):
+                            achievements = [escape_latex(str(v)) for v in value]
+                            break
+            
             if achievements:
                 section += "\\begin{itemize}\n"
                 for achievement in achievements:
-                    section += f"    \\item {escape_latex(str(achievement))}\n"
+                    if achievement:  # Skip empty achievements
+                        section += f"    \\item {achievement}\n"
                 section += "\\end{itemize}\n"
             
             if i < len(projects_list) - 1:
@@ -272,13 +347,12 @@ def generate_projects_section(projects_list: List[Dict]) -> str:
     
     return section
 
-
 def generate_certifications_section(certifications_list: List[str]) -> str:
     """Generate certifications section - ALL certifications preserved"""
     if not certifications_list:
         return ""
     
-    section = "\\section*{Certificats}\n"
+    section = ""  # REMOVED: \section*{Certificats}\n
     section += "\\begin{itemize}\n"
     
     for cert in certifications_list:
@@ -296,7 +370,7 @@ def generate_languages_section(languages_list: List[str]) -> str:
     if not languages_list:
         return ""
     
-    section = "\\section*{Langues}\n"
+    section = ""  # REMOVED: \section*{Langues}\n
     section += "\\small\n"
     section += "\\noindent\n"
     
@@ -305,8 +379,6 @@ def generate_languages_section(languages_list: List[str]) -> str:
     section += languages_text + "\n"
     
     return section
-
-
 
 
 def format_cv_data_from_parser(parsed_data: Dict) -> Dict:

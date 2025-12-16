@@ -1,18 +1,15 @@
-\documentclass[9pt,a4paper]{article}
+\documentclass[10pt,a4paper]{article}
 
-% ========== PACKAGES ==========
+% Packages
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-\usepackage[margin=0.45in]{geometry}
+\usepackage[margin=0.5in]{geometry}
 \usepackage{enumitem}
 \usepackage{hyperref}
 \usepackage{xcolor}
-\usepackage{titlesec}
-\usepackage{parskip}
-\usepackage{multicol}
 
-% ========== HYPERREF SETUP ==========
+% Hyperref setup
 \hypersetup{
     colorlinks=true,
     linkcolor=black,
@@ -21,76 +18,80 @@
     pdfauthor={{ name }}
 }
 
-% ========== CUSTOM SETTINGS ==========
+% Custom settings
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{1.5pt}
-\setlength{\topskip}{0pt}
-\setlength{\topmargin}{0pt}
-\setlength{\headheight}{0pt}
-\setlength{\headsep}{0pt}
-\setlength{\footskip}{0pt}
+\setlength{\parskip}{0pt}
+\setlist[itemize]{left=0pt, label={}, nosep, itemsep=0pt, topsep=2pt}
 
-% ========== COMPACT ITEMIZE ==========
-\setlist[itemize]{
-    leftmargin=*,
-    label={},
-    nosep,
-    itemsep=0.5pt,
-    topsep=0.5pt,
-    parsep=0pt,
-    partopsep=0pt
+% Section formatting
+\newcommand{\cvsection}[1]{
+    \vspace{4pt}
+    \textbf{\MakeUppercase{#1}}
+    \vspace{1pt}
+    \hrule
+    \vspace{2pt}
 }
 
-% ========== SECTION FORMATTING ==========
-\titleformat{\section}
-    {\normalfont\bfseries\small\uppercase}
-    {}
-    {0pt}
-    {}
-    [\vspace{-2pt}\titlerule[0.5pt]\vspace{1.5pt}]
-
-\titlespacing*{\section}
-    {0pt}
-    {3pt}
-    {1.5pt}
-
-% ========== CUSTOM COMMANDS ==========
-% Experience entry - compact
+% Experience entry
 \newcommand{\cventry}[4]{
     \textbf{#1} \hfill \textit{#2}\\
     \textit{#3} \hfill #4
-    \vspace{0.5pt}
+    \vspace{1pt}
 }
 
-% ========== DOCUMENT STARTS HERE ==========
+% Command to strip common section titles from content
+\newcommand{\stripcontent}[1]{%
+  \begingroup
+  \def\temp{#1}%
+  % Remove common section titles if they appear at the beginning
+  \expandafter\ifstrequal\expandafter{\temp}{Profil}{}{\temp}%
+  \expandafter\ifstrequal\expandafter{\temp}{Formation}{}{\temp}%
+  \expandafter\ifstrequal\expandafter{\temp}{Expériences Professionnelles}{}{\temp}%
+  \expandafter\ifstrequal\expandafter{\temp}{Compétences Techniques}{}{\temp}%
+  \expandafter\ifstrequal\expandafter{\temp}{Projets Académiques}{}{\temp}%
+  \expandafter\ifstrequal\expandafter{\temp}{Certificats}{}{\temp}%
+  \expandafter\ifstrequal\expandafter{\temp}{Langues}{}{\temp}%
+  \endgroup
+}
+
+% Simple version: Just pass through content but remove obvious titles
+\newcommand{\clean}[1]{#1}
+
 \begin{document}
 
-% ========== HEADER ==========
+% Use the generated header section instead of hardcoded one
 {{ HEADER }}
 
-% ========== PROFILE ==========
-{{ PROFILE }}
+% Profile - Use clean content
+\cvsection{Profil}
+\clean{{{ PROFILE }}}
 
-% ========== EDUCATION ==========
-{{ EDUCATION }}
+% Education
+\cvsection{Formation}
+\clean{{{ EDUCATION }}}
 
-% ========== PROFESSIONAL EXPERIENCE ==========
-{{ EXPERIENCE }}
+% Professional Experience
+\cvsection{Expériences Professionnelles}
+\clean{{{ EXPERIENCE }}}
 
-% ========== TECHNICAL SKILLS ==========
-{{ SKILLS }}
+% Technical Skills
+\cvsection{Compétences Techniques}
+\clean{{{ SKILLS }}}
 
-% ========== PROJECTS ==========
-{{ PROJECTS }}
+% Projects
+\cvsection{Projets Académiques}
+\clean{{{ PROJECTS }}}
 
-% ========== CERTIFICATIONS ==========
-{{ CERTIFICATIONS }}
+% Certifications
+\cvsection{Certificats}
+\clean{{{ CERTIFICATIONS }}}
 
-% ========== LANGUAGES ==========
-{{ LANGUAGES }}
+% Languages
+\cvsection{Langues}
+\clean{{{ LANGUAGES }}}
 
-% ========== FOOTER ==========
+% Footer
 \vfill
 \begin{center}
     \small\textcolor{gray}{CV généré le \today{} • Format ATS-optimisé}

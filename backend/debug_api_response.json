@@ -1,0 +1,162 @@
+{
+  "parsed": {
+    "name": "Kenza Bellamine",
+    "title": "Élève Ingénieur",
+    "brief": "Étudiante en ingénierie informatique, option MIAGE, je suis actuellement à la recherche d'un stage PFE de six mois à partir de février 2026. Curieuse et motivée, je souhaite mettre mes compétences en développement logiciel et en résolution de problèmes au service de votre équipe, afin de contribuer activement à la réussite des projets de votre organisation.",
+    "contact": {
+      "location_city": "Casablanca",
+      "location_state": null,
+      "location_country": "Maroc",
+      "email": "kenzabellamine21@gmail.com",
+      "phone": "+212608636651",
+      "linkedin": null,
+      "github": null,
+      "twitter": null,
+      "website": null
+    },
+    "employment_history": [
+      {
+        "title": "Stage en Data & IA appliqués à la fraude bancaire ISO20022",
+        "company": "Wal-IT Services",
+        "company_website": null,
+        "location": "Casablanca, Maroc",
+        "start_date": "2025-08-01",
+        "end_date": "2025-09-30",
+        "roles": [
+          {
+            "role": "Data & IA Intern",
+            "responsibilities": [
+              "Conception d’un pipeline ETL complet (extraction XML, nettoyage, transformation, enrichissement géographique, chargement PostgreSQL) pour préparer les données.",
+              "Développement de modules data : authentification sécurisée (Bcrypt, JWT-ready), géocodage et calcul de distances (Geopy, OSM), gestion des sessions et reporting automatisé.",
+              "Mise en place d’un système de détection de fraude hybride combinant règles métier et modèles IA/ML (Isolation Forest, XGBoost) avec feature engineering et scoring de risque.",
+              "Production de rapports analytiques et visualisations (ReportLab, Plotly, Power BI) pour l’aide à la décision."
+            ]
+          }
+        ],
+        "responsibilities": [
+          "Conception d’un pipeline ETL complet (extraction XML, nettoyage, transformation, enrichissement géographique, chargement PostgreSQL) pour préparer les données.",
+          "Développement de modules data : authentification sécurisée (Bcrypt, JWT-ready), géocodage et calcul de distances (Geopy, OSM), gestion des sessions et reporting automatisé.",
+          "Mise en place d’un système de détection de fraude hybride combinant règles métier et modèles IA/ML (Isolation Forest, XGBoost) avec feature engineering et scoring de risque.",
+          "Production de rapports analytiques et visualisations (ReportLab, Plotly, Power BI) pour l’aide à la décision."
+        ]
+      },
+      {
+        "title": "Stage en Développement d'une application web",
+        "company": "Banque Centrale Populaire",
+        "company_website": null,
+        "location": "Casablanca, Maroc",
+        "start_date": "2024-07-01",
+        "end_date": "2024-08-31",
+        "roles": [
+          {
+            "role": "Web Development Intern",
+            "responsibilities": [
+              "Application web avec Python et Flask pour gérer les flux XML dans le cadre de la dématérialisation des titres d'importation.",
+              "Conception d'une interface utilisateur intuitive avec HTML, CSS, JavaScript.",
+              "Modélisation des processus métier via des diagrammes UML.",
+              "Implémentation de mécanismes pour le traitement, l’archivage et la validation des fichiers XML via XSD.",
+              "Développement d’un système de génération et validation de fichiers XML conformes.",
+              "Gestion de la base de données SQLite avec optimisation des requêtes et stockage structuré."
+            ]
+          }
+        ],
+        "responsibilities": [
+          "Application web avec Python et Flask pour gérer les flux XML dans le cadre de la dématérialisation des titres d'importation.",
+          "Conception d'une interface utilisateur intuitive avec HTML, CSS, JavaScript.",
+          "Modélisation des processus métier via des diagrammes UML.",
+          "Implémentation de mécanismes pour le traitement, l’archivage et la validation des fichiers XML via XSD.",
+          "Développement d’un système de génération et validation de fichiers XML conformes.",
+          "Gestion de la base de données SQLite avec optimisation des requêtes et stockage structuré."
+        ]
+      }
+    ],
+    "education": [
+      {
+        "degree": "Ingénierie en Informatique et Réseaux (MIAGE)",
+        "institution_name": "Ecole Marocaine des Sciences de l’Ingénieur (EMSI)",
+        "institution_country": "Maroc",
+        "start_date": "2021-09-01",
+        "end_date": null
+      },
+      {
+        "degree": "Baccalauréat en Sciences Physiques (BIOF) – Mention Très Bien",
+        "institution_name": "Lycée Jabri",
+        "institution_country": "Maroc",
+        "start_date": "2020-09-01",
+        "end_date": "2021-06-30"
+      }
+    ],
+    "skills": [
+      "C",
+      "C++",
+      "C#",
+      "Python",
+      "Java",
+      ".NET",
+      "SpringBoot",
+      ".NET Core",
+      "XGBoost",
+      "Isolation Forest",
+      "TensorFlow",
+      "Sckit-learn",
+      "Deep learning",
+      "Data Warehouse",
+      "Data Mining",
+      "Hadoop",
+      "SQL Tuning",
+      "Transact-SQL",
+      "PL/SQL",
+      "PostgreSQL",
+      "SQLite",
+      "SQLServer",
+      "MongoDB",
+      "Android (Java, Firebase)",
+      "Flutter (Dart, Firebase)",
+      "Docker",
+      "Azure",
+      "Azure DevOps",
+      "Git",
+      "Méthodologie Agile (Scrum)",
+      "Jira",
+      "MS Project",
+      "UML",
+      "Windows",
+      "Unix"
+    ],
+    "courses": [
+      "Virtual Networks in Azure | Coursera",
+      "Software Engineering: Software Design and Project Management | Coursera",
+      "IBM | Introduction to Artificial Intelligence (AI)| Coursera",
+      "OCI DevOps Professional (En cours) | Oracle",
+      "IBM | Data Science (En cours) | Coursera"
+    ],
+    "languages": [
+      "Français",
+      "Anglais",
+      "Arabe"
+    ],
+    "references": [],
+    "derived": {
+      "years_of_experience": 1,
+      "approximate_age": 22
+    },
+    "driving_license_present": null,
+    "driving_license_id": null
+  },
+  "normalized_text": "KENZA BELLAMINE\n\nÉLÈVE INGÉNIEUR\n\nPROFIL  \nÉtudiante en ingénierie informatique, option MIAGE, je suis actuellement à la recherche d'un stage PFE de six mois à partir de février 2026. Curieuse et motivée, je souhaite mettre mes compétences en développement logiciel et en résolution de problèmes au service de votre équipe, afin de contribuer activement à la réussite des projets de votre organisation.\n\nCONTACT  \nTéléphone : +212608636651  \nEmail : kenzabellamine21@gmail.com  \nLocalisation : Casablanca, Maroc\n\nFORMATION  \n2021 - Présent  \nEcole Marocaine des Sciences de l’Ingénieur (EMSI), Casablanca  \nIngénierie en Informatique et Réseaux (MIAGE)\n\n2020 - 2021  \nLycée Jabri, Casablanca  \nBaccalauréat en Sciences Physiques (BIOF) – Mention Très Bien\n\nCOMPÉTENCES TECHNIQUES  \n- Langages de programmation : C, C++, C#, Python, Java, .NET, SpringBoot, .NET Core  \n- Intelligence Artificielle & Machine Learning : XGBoost, Isolation Forest, TensorFlow, Scikit-learn, Deep Learning  \n- Data & Big Data : Data Warehouse, Data Mining, Hadoop  \n- Bases de données : SQL Tuning, Transact-SQL, PL/SQL, PostgreSQL, SQLite, SQL Server, MongoDB  \n- Développement mobile : Programmation native Android (Java, Firebase), Cross-platform Flutter (Dart, Firebase)  \n- Cloud & DevOps : Docker, Azure, Azure DevOps, Git  \n- Gestion de projet & Modélisation : Méthodologie Agile (Scrum), Jira, MS Project, UML  \n- Systèmes d’exploitation : Administration Windows, Unix\n\nCERTIFICATS  \n- Virtual Networks in Azure | Coursera  \n- Software Engineering: Software Design and Project Management | Coursera  \n- IBM | Introduction to Artificial Intelligence (AI) | Coursera  \n- OCI DevOps Professional (En cours) | Oracle  \n- IBM | Data Science (En cours) | Coursera\n\nEXPÉRIENCES PROFESSIONNELLES  \n\nWal-IT Services – Casablanca  \nAOÛT - SEPTEMBRE 2025  \nStage en Data & IA appliqués à la fraude bancaire ISO20022  \n- Conception d’un pipeline ETL complet (extraction XML, nettoyage, transformation, enrichissement géographique, chargement PostgreSQL) pour préparer les données  \n- Développement de modules data : authentification sécurisée (Bcrypt, JWT-ready), géocodage et calcul de distances (Geopy, OSM), gestion des sessions et reporting automatisé  \n- Mise en place d’un système de détection de fraude hybride combinant règles métier et modèles IA/ML (Isolation Forest, XGBoost) avec feature engineering et scoring de risque  \n- Production de rapports analytiques et visualisations (ReportLab, Plotly, Power BI) pour l’aide à la décision\n\nBanque Centrale Populaire – Casablanca  \nJUILLET – AOÛT 2024  \nStage en Développement d'une application web de gestion des flux XML échangés avec PORTNET pour la dématérialisation des titres d'importation  \n- Application web avec Python et Flask pour gérer les flux XML dans le cadre de la dématérialisation des titres d'importation  \n- Conception d'une interface utilisateur intuitive avec HTML, CSS, JavaScript  \n- Modélisation des processus métier via des diagrammes UML  \n- Implémentation de mécanismes pour le traitement, l’archivage et la validation des fichiers XML via XSD  \n- Développement d’un système de génération et validation de fichiers XML conformes  \n- Gestion de la base de données SQLite avec optimisation des requêtes et stockage structuré\n\nPROJETS ACADÉMIQUES  \n\nNettoyage et Visualisation de Données  \nRéalisation avec Python, SQL et Power BI\n\nApplication mobile de Reconnaissance Faciale - Deep Learning (En cours)  \nRéalisation avec Flutter, TensorFlow et Firebase\n\nEMSI SmartPresence – Application Android de gestion des présences  \nTechnologies : Java, GoogleMaps, Firebase\n\nApplication SmartParking  \nTechnologies : Spring Boot, Microservices, MySQL, Thymeleaf, REST API\n\nApplication de Gestion de Collection Personnelle  \nRéalisation avec .NET, Entity Framework\n\nEMSIExchange – Application web d’échange de biens entre étudiants  \nTechnologies : Vite, React, TypeScript, Shadcn-UI, Tailwind CSS, Supabase\n\nLANGUES  \n- Français : Très bonne maîtrise  \n- Anglais : Très bonne maîtrise  \n- Arabe : Langue maternelle\n\nCOMPÉTENCES PERSONNELLES  \n- Créativité  \n- Esprit d’équipe  \n- Sens relationnel  \n- Curiosité intellectuelle",
+  "file_metadata": {
+    "Title": "CV_Kenza Bellamine.pdf",
+    "Creator": "Canva",
+    "Producer": "Canva",
+    "CreationDate": "D:20251205100945+00'00'",
+    "ModDate": "D:20251205100944+00'00'",
+    "Keywords": "DAGzu1bq0yY,BAGaJPMetzY,0",
+    "Author": "Kenza Workspace"
+  },
+  "meta": {
+    "message": "Resume parsed successfully.",
+    "file_hash": "176b3408dda5aa4136319564ace87a0d",
+    "balance": 423,
+    "runtime_ms": 99
+  }
+}

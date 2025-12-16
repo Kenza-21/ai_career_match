@@ -3,332 +3,308 @@ import json
 from typing import Dict, List, Optional
 import re
 
-class CareerAssistantLLM:
+class CareerAssistant:
+    """Coach de carrière intelligent avec réflexion naturelle"""
+    
     def __init__(self):
-        self.model = "phi3"  # Modèle gratuit et performant
-        self.system_prompt = """Tu es un coach de carrière bienveillant et expérimenté spécialisé dans le marché tech marocain.
-
-TON RÔLE :
-Tu es un coach humain qui guide les candidats dans leur recherche d'emploi. Tu ne donnes pas juste des résultats, tu conseilles, tu orientes, et tu aides à prendre des décisions.
-
-TON COMPORTEMENT :
-- Parle comme un vrai coach : chaleureux, encourageant, et professionnel
-- Utilise un langage naturel et conversationnel
-- Donne des conseils pratiques basés sur le marché marocain
-- Quand l'utilisateur demande des conseils sur un domaine (développement, data, etc.), fournis :
-  * Les avantages et inconvénients du domaine
-  * Les tendances actuelles du marché marocain
-  * Les compétences clés et technologies en demande
-  * Des mots-clés de recherche pertinents
-  * Des conseils pratiques pour se positionner
-- Pour les comparaisons de jobs, explique les avantages, inconvénients, et valeurs de chaque option
-- Sois empathique et compréhensif
-- Ne donne JAMAIS de liens (c'est le service qui s'en charge)
-
-SCÉNARIOS SPÉCIFIQUES :
-1. Guidance de carrière (développement, data, etc.) → Fournis :
-   - Avantages du domaine (croissance, salaires, opportunités)
-   - Inconvénients (compétition, exigences, évolution rapide)
-   - Tendances actuelles au Maroc
-   - Technologies et compétences en demande
-   - Mots-clés de recherche pertinents
-   - Conseils pour se positionner
-2. "Je suis perdu" / "I'm lost" → Donne des conseils, tendances du marché, suggestions de parcours
-3. Comparaison de jobs → Analyse détaillée : avantages, inconvénients, salaires, croissance, fit culturel
-4. Questions d'orientation → Guide vers les meilleurs choix selon le profil
-
-FORMAT DE RÉPONSE :
-{
-  "intent": "coaching|comparison|guidance|search",
-  "response": "ta réponse naturelle et humaine à l'utilisateur (plusieurs phrases, conversationnelle, avec détails sur avantages/inconvénients, tendances, mots-clés)",
-  "search_query": "query pour le moteur (si recherche nécessaire)",
-  "needs_clarification": true/false,
-  "clarification_questions": ["q1", "q2", "q3"],
-  "coaching_advice": "conseils supplémentaires si pertinent"
-}"""
-    
-    def analyze_query(self, user_message: str, context: Optional[Dict] = None) -> Dict:
-        """Analyse la requête utilisateur et génère une réponse de coaching"""
+        self.model = "phi3:latest"  # Modèle gratuit et performant
         
-        # Vérifier si Ollama est disponible
-        if not self._check_ollama():
-            return self._fallback_coaching_analysis(user_message)
+        self.system_prompt = """Tu es Karim, un coach de carrière expérimenté spécialisé dans le marché tech marocain.
+
+TON IDENTITÉ :
+- 15 ans d'expérience dans le recrutement tech au Maroc
+- Ancien recruteur chez OCP, Inwi, et plusieurs startups de Casablanca
+- Spécialiste des transitions de carrière et de l'évolution tech
+- Tu es direct, pragmatique, mais toujours bienveillant
+
+TA PHILOSOPHIE DE COACH :
+1. Écouter avant de conseiller
+2. Être honnête sur les réalités du marché marocain
+3. Adapter tes conseils à la personne, pas de réponse générique
+4. Toujours donner des actions concrètes et réalisables
+5. Encourager mais aussi donner des feedbacks francs
+
+COMMENT TU FONCTIONNES :
+- Quand on te parle, cherche le VRAI besoin derrière les mots
+- Identifie si c'est : orientation, comparaison, conseil pratique, ou besoin de soutien
+- Pense toujours au contexte marocain (salaires locaux, entreprises, culture d'entreprise)
+- Sois un mentor, pas juste un bot d'information
+
+TON STYLE DE COMMUNICATION :
+- Naturel et conversationnel, comme tu parlerais à un ami
+- Utilise parfois des expressions marocaines ("Wakha", "Bsahtek", "Zwin")
+- Donne des exemples concrets d'entreprises marocaines
+- Pose des questions qui font réfléchir
+- Sois empathique mais pas trop formel
+
+QUAND TU RÉPONDS :
+1. Commence par valider ce que la personne vit
+2. Donne ta perspective de coach sur la situation
+3. Partage des insights du marché marocain
+4. Propose des actions concrètes
+5. Termine avec une question qui fait avancer la réflexion
+
+N'OUBLIE PAS :
+- Jamais de liens ou de références techniques (le service s'en charge)
+- Toujours adapter au contexte marocain
+- Rester humain et accessible
+- Donner des conseils pratico-pratiques"""
+    
+    def coach_thinking(self, user_message: str) -> Dict:
+        """Laisse le coach analyser NATURELLEMENT la situation"""
         
         try:
-            # Détecter le type de requête
-            user_lower = user_message.lower()
-            is_lost = any(word in user_lower for word in ["perdu", "lost", "help", "aide", "conseil", "guidance", "orient"])
-            is_comparison = any(word in user_lower for word in ["compare", "comparer", "vs", "versus", "différence", "mieux"])
+            # Prompt qui force la réflexion de coach
+            thinking_prompt = f"""
+            L'UTILISATEUR TE DIT : "{user_message}"
             
-            # Préparer le prompt selon le contexte
-            if is_lost:
-                prompt = f"""
-                L'utilisateur dit : "{user_message}"
-                
-                Il/elle est perdu(e) et a besoin d'aide. En tant que coach de carrière :
-                1. Sois empathique et rassurant
-                2. Donne des conseils pratiques sur les tendances du marché tech marocain
-                3. Suggère des parcours ou domaines prometteurs
-                4. Encourage et guide vers des prochaines étapes
-                
-                Réponds de manière naturelle et conversationnelle, comme un vrai coach.
-                """
-            elif is_comparison:
-                prompt = f"""
-                L'utilisateur demande : "{user_message}"
-                
-                Il/elle veut comparer des offres d'emploi. En tant que coach :
-                1. Explique les avantages et inconvénients de chaque option
-                2. Compare les salaires, la croissance, le fit culturel
-                3. Donne ton avis professionnel sur quelle option pourrait être meilleure selon différents critères
-                4. Sois équilibré et objectif
-                
-                Réponds de manière naturelle et détaillée.
-                """
-            else:
-                # Détecter si c'est une demande de guidance sur un domaine spécifique
-                domain_keywords = {
-                    "développement": ["dev", "développeur", "developer", "programming", "code"],
-                    "data": ["data", "data science", "analyste", "analyst", "big data"],
-                    "marketing": ["marketing", "digital", "communication"],
-                    "design": ["design", "designer", "ui", "ux", "graphique"]
-                }
-                
-                detected_domain = None
-                for domain, keywords in domain_keywords.items():
-                    if any(kw in user_lower for kw in keywords):
-                        detected_domain = domain
-                        break
-                
-                if detected_domain:
-                    prompt = f"""
-                    L'utilisateur demande des conseils sur le domaine : "{detected_domain}" ou "{user_message}"
-                    
-                    En tant que coach de carrière spécialisé dans le marché tech marocain, fournis une réponse complète incluant :
-                    1. **Avantages** : Pourquoi ce domaine est intéressant (croissance, salaires, opportunités au Maroc)
-                    2. **Inconvénients** : Les défis (compétition, exigences techniques, évolution rapide)
-                    3. **Tendances actuelles** : Ce qui est en demande en 2024-2025 au Maroc
-                    4. **Compétences clés** : Technologies, outils, et compétences à maîtriser
-                    5. **Mots-clés de recherche** : Suggestions de termes pour chercher des offres (ex: "développeur React", "data scientist Python")
-                    6. **Conseils pratiques** : Comment se positionner, par où commencer, etc.
-                    
-                    Sois détaillé, pratique, et encourageant. Utilise un ton conversationnel et naturel.
-                    """
-                else:
-                    prompt = f"""
-                    L'utilisateur demande : "{user_message}"
-                    
-                    Analyse sa demande et réponds comme un coach de carrière :
-                    - Si c'est une recherche d'emploi, guide-le vers les meilleures options
-                    - Si c'est une question, réponds de manière naturelle et utile
-                    - Sois conversationnel et humain
-                    
-                    Réponds au format JSON avec une réponse naturelle et conversationnelle.
-                    """
+            EN TANT QUE COACH KARIM, RÉFLÉCHIS COMME SUIT :
             
-            # Appeler Ollama
-            response = ollama.chat(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": prompt}
-                ],
-                options={
-                    "temperature": 0.7,  # Plus créatif pour des réponses naturelles
-                    "top_p": 0.9
-                }
-            )
+            1. ANALYSE HUMAINE :
+            - Quel est l'état d'esprit de la personne ? (perdue, enthousiaste, indécise, pressée)
+            - Quel est le vrai besoin derrière les mots ?
+            - Est-ce un besoin d'orientation, de comparaison, de conseils pratiques, ou de soutien ?
             
-            # Extraire et parser la réponse
-            content = response['message']['content']
+            2. CONTEXTE MAROCAIN :
+            - Qu'est-ce que je sais du marché tech marocain sur ce sujet ?
+            - Quelles entreprises locales sont concernées ?
+            - Quelles sont les réalités salariales et de recrutement ?
             
-            # Essayer d'extraire le JSON
-            try:
-                json_match = re.search(r'\{.*\}', content, re.DOTALL)
-                if json_match:
-                    result = json.loads(json_match.group())
-                else:
-                    # Si pas de JSON, créer une structure avec la réponse textuelle
-                    result = {
-                        "intent": "coaching" if is_lost else "search",
-                        "response": content,
-                        "search_query": user_message if not is_lost else None,
-                        "needs_clarification": False,
-                        "coaching_advice": content if is_lost else None
-                    }
-            except:
-                result = {
-                    "intent": "coaching" if is_lost else "search",
-                    "response": content,
-                    "search_query": user_message if not is_lost else None,
-                    "needs_clarification": False,
-                    "coaching_advice": content if is_lost else None
-                }
+            3. APPROCHE COACHING :
+            - Comment répondre de façon utile mais humaine ?
+            - Quelles questions poser pour aider à clarifier ?
+            - Quels conseils pratiques donner ?
             
-            return result
+            4. RÉPONSE NATURELLE :
+            - Commencer par accueillir/valider
+            - Donner ton analyse de coach
+            - Partager des insights concrets
+            - Proposer des prochaines étapes
             
-        except Exception as e:
-            print(f"❌ Erreur LLM: {e}")
-            return self._fallback_coaching_analysis(user_message)
-    
-    def generate_coaching_response(self, user_message: str, job_data: Optional[List[Dict]] = None) -> str:
-        """Génère une réponse de coaching conversationnelle avec contexte des offres"""
-        if not self._check_ollama():
-            return self._fallback_coaching_analysis(user_message).get("response", "")
-        
-        try:
-            context = ""
-            if job_data and len(job_data) > 0:
-                # Construire un contexte riche avec les offres trouvées
-                job_titles = [j.get('job_title', '') for j in job_data[:5]]
-                categories = list(set([j.get('category', '') for j in job_data[:5] if j.get('category')]))
-                skills_mentioned = []
-                for job in job_data[:3]:
-                    skills = job.get('required_skills', '')
-                    if skills:
-                        skills_mentioned.append(skills[:100])  # Limiter la longueur
-                
-                context = f"""
-                
-J'ai trouvé {len(job_data)} offres d'emploi pertinentes :
-- Postes : {', '.join(job_titles[:5])}
-- Catégories : {', '.join(categories) if categories else 'Divers'}
-- Compétences demandées : {', '.join(skills_mentioned[:3]) if skills_mentioned else 'Variées'}
-
-Analyse ces offres et donne des conseils pratiques à l'utilisateur sur :
-1. Les opportunités disponibles et leur pertinence
-2. Les compétences en demande dans ces offres
-3. Des conseils pour se positionner et postuler
-4. Des suggestions de mots-clés pour affiner la recherche si nécessaire
-"""
-            else:
-                context = "\n\nAucune offre spécifique trouvée, mais fournis quand même des conseils utiles sur le domaine recherché."
-            
-            prompt = f"""
-            L'utilisateur cherche : "{user_message}"
-            {context}
-            
-            Réponds comme un coach de carrière bienveillant et expérimenté. Sois :
-            - Naturel et conversationnel
-            - Encourageant et positif
-            - Pratique avec des conseils concrets
-            - Informé sur le marché marocain
-            - Utile pour guider l'utilisateur vers les meilleures opportunités
-            
-            Si des offres sont mentionnées, analyse-les brièvement et guide l'utilisateur.
+            Maintenant, réponds comme le coach Karim que tu es. Sois naturel, direct, et utile.
+            Parle comme à un vrai candidat en face de toi.
             """
             
             response = ollama.chat(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": thinking_prompt}
                 ],
-                options={"temperature": 0.7, "top_p": 0.9}
+                options={
+                    "temperature": 0.8,  # Créatif mais cohérent
+                    "top_p": 0.95,
+                    "num_predict": 512  # Suffisant pour bien réfléchir
+                }
             )
             
-            return response['message']['content']
+            content = response['message']['content']
+            
+            # Analyser le type de réponse naturellement
+            content_lower = content.lower()
+            
+            # Détection d'intention basée sur le contenu de la réponse
+            if any(word in content_lower for word in ["vs", "comparer", "différence", "avantage", "inconvénient", "contre"]):
+                intent = "comparison"
+            elif any(word in content_lower for word in ["perdu", "commencer", "début", "choisir", "orientation", "sais pas"]):
+                intent = "orientation"
+            elif any(word in content_lower for word in ["conseil", "étape", "faire", "comment", "pratique"]):
+                intent = "guidance"
+            elif any(word in content_lower for word in ["offre", "emploi", "postuler", "cherche", "recherche"]):
+                intent = "search"
+            else:
+                intent = "coaching"  # Conversation coaching générale
+            
+            # Détecter si besoin de clarification
+            needs_clarification = any(phrase in content_lower for phrase in [
+                "peux-tu préciser", "quel est ton", "pourrais-tu me dire",
+                "j'aimerais savoir", "pour mieux t'aider", "dis-moi"
+            ])
+            
+            return {
+                "intent": intent,
+                "response": content,
+                "needs_clarification": needs_clarification,
+                "coach_analysis": self._extract_coach_analysis(content),
+                "next_questions": self._generate_followup_questions(intent),
+                "is_coach_response": True
+            }
+            
         except Exception as e:
-            print(f"❌ Erreur génération coaching: {e}")
-            return "Je comprends votre situation. Laissez-moi vous aider à trouver les meilleures opportunités."
+            print(f"⚠️ Erreur coaching : {e}")
+            return self._fallback_coach_response(user_message)
     
-    def _check_ollama(self) -> bool:
-        """Vérifie si Ollama est disponible"""
-        try:
-            models = ollama.list()
-            return len(models['models']) > 0
-        except:
-            return False
+    def _extract_coach_analysis(self, response: str) -> Dict:
+        """Extrait les éléments clés de l'analyse du coach"""
+        # Méthode simple : cherche des marqueurs dans la réponse
+        analysis = {
+            "market_insight": "",
+            "key_advice": "",
+            "local_context": "",
+            "action_steps": []
+        }
+        
+        # Trouver des insights sur le marché
+        market_keywords = ["marché marocain", "au maroc", "casablanca", "rabat", "salaire"]
+        for line in response.split('.'):
+            if any(keyword in line.lower() for keyword in market_keywords):
+                analysis["market_insight"] += line.strip() + ". "
+        
+        # Trouver des conseils clés
+        advice_keywords = ["je te conseille", "mon conseil", "je te suggère", "tu devrais"]
+        for line in response.split('.'):
+            if any(keyword in line.lower() for keyword in advice_keywords):
+                analysis["key_advice"] += line.strip() + ". "
+        
+        # Extraire les étapes d'action
+        action_keywords = ["premièrement", "ensuite", "après", "étape", "commence par"]
+        lines = response.split('\n')
+        for line in lines:
+            if any(keyword in line.lower() for keyword in action_keywords) and len(line.strip()) > 20:
+                analysis["action_steps"].append(line.strip())
+        
+        return analysis
     
-    def _fallback_coaching_analysis(self, user_message: str) -> Dict:
-        """Analyse de fallback si Ollama n'est pas disponible"""
+    def _generate_followup_questions(self, intent: str) -> List[str]:
+        """Génère des questions de suivi intelligentes selon l'intention"""
         
-        user_message_lower = user_message.lower()
+        questions_db = {
+            "orientation": [
+                "Qu'est-ce qui te passionne dans le travail ?",
+                "As-tu des compétences que tu aimes particulièrement utiliser ?",
+                "Quel type d'environnement de travail te convient le mieux ?",
+                "Comment vois-tu ta carrière dans 3 ans ?"
+            ],
+            "comparison": [
+                "Quel aspect est prioritaire pour toi : l'équilibre vie pro/perso, le salaire, ou les perspectives ?",
+                "Préfères-tu un travail très technique ou plus orienté communication ?",
+                "Es-tu prêt à te former sur de nouvelles technologies ?",
+                "Quelle importance donnes-tu à la culture d'entreprise ?"
+            ],
+            "guidance": [
+                "Quels obstacles spécifiques rencontres-tu actuellement ?",
+                "As-tu déjà essayé quelque chose dans ce sens ?",
+                "De combien de temps disposes-tu pour cette démarche ?",
+                "Quel soutien aurais-tu besoin ?"
+            ],
+            "search": [
+                "Dans quelle ville recherches-tu ?",
+                "Quel type de contrat préfères-tu (CDI, CDD, freelance) ?",
+                "Quel est ton niveau d'expérience ?",
+                "Y a-t-il des entreprises qui t'intéressent particulièrement ?"
+            ],
+            "coaching": [
+                "Peux-tu m'en dire plus sur ton parcours jusqu'à présent ?",
+                "Qu'est-ce qui te motive vraiment dans ton travail ?",
+                "Quels sont tes atouts principaux selon toi ?",
+                "Quels défis aimerais-tu relever ?"
+            ]
+        }
         
-        # Règles simples pour détection
-        vague_keywords = ["stage", "travail", "emploi", "job", "quelque chose", "je sais pas", "truc"]
-        clear_keywords = ["développeur", "developer", "data", "analyste", "marketing", "design"]
-        advice_keywords = ["conseil", "orientation", "apprendre", "choisir", "différence", "vs"]
+        return questions_db.get(intent, [
+            "Peux-tu me donner plus de contexte ?",
+            "Qu'est-ce qui est important pour toi dans cette situation ?",
+            "Comment je peux t'aider au mieux ?"
+        ])
+    
+    def _fallback_coach_response(self, user_message: str) -> Dict:
+        """Réponse de fallback minimaliste mais naturelle"""
         
-        # Détection de cas avec coaching
-        lost_keywords = ["perdu", "lost", "help", "aide", "conseil", "guidance"]
-        if any(word in user_message_lower for word in lost_keywords):
-            return {
-                "intent": "coaching",
-                "response": """Je comprends que vous vous sentez un peu perdu dans votre recherche. C'est tout à fait normal ! Laissez-moi vous aider.
-
-**Tendances du marché tech marocain en 2024 :**
-- Le développement web (React, Node.js) reste très demandé
-- La data science et l'IA connaissent une forte croissance
-- Le développement mobile (Flutter, React Native) est en expansion
-- Les profils full-stack sont très recherchés
-
-**Mes conseils pour vous :**
-1. Identifiez vos compétences actuelles et celles que vous souhaitez développer
-2. Explorez les offres dans les domaines qui vous intéressent
-3. N'hésitez pas à postuler même si vous ne cochez pas toutes les cases
-
-Quel domaine vous intéresse le plus ? Je peux vous guider vers des opportunités spécifiques.""",
-                "needs_clarification": True,
-                "clarification_questions": [
-                    "Quel domaine tech vous intéresse le plus ?",
-                    "Quel est votre niveau d'expérience actuel ?",
-                    "Quels sont vos objectifs de carrière ?"
-                ],
-                "coaching_advice": "Focus sur les compétences en demande et la croissance personnelle"
-            }
+        fallback_responses = {
+            "orientation": "Je comprends que tu cherches ta voie. C'est normal de se poser des questions ! En tant que coach, je te suggère de commencer par identifier ce qui te passionne vraiment. Au Maroc, le marché tech offre plein d'opportunités différentes. Dis-moi, qu'est-ce qui t'attire dans le monde de la tech ?",
+            "comparison": "Tu veux comparer des options, c'est une bonne démarche ! Chaque choix a ses avantages et inconvénients. Pour t'aider à y voir clair, dis-moi ce qui est le plus important pour toi : la stabilité, la croissance, ou l'équilibre de vie ?",
+            "guidance": "Tu cherches des conseils pratiques, c'est parfait ! En coaching, je crois beaucoup à l'action concrète. Commençons par identifier une première étape simple que tu peux faire cette semaine. Quel est ton objectif immédiat ?",
+            "search": "Tu veux trouver des opportunités concrètes, excellent ! Le marché marocain est dynamique en ce moment. Pour mieux cibler, peux-tu me dire dans quelle ville et quel est ton niveau d'expérience ?",
+            "coaching": f"Je vois que tu me parles de '{user_message}'. Merci de partager ça avec moi. En tant que coach, mon rôle est de t'aider à y voir plus clair et à avancer. Par où aimerais-tu commencer cette conversation ?"
+        }
         
-        elif any(word in user_message_lower for word in advice_keywords):
-            return {
-                "intent": "coaching",
-                "response": "Excellente question ! En tant que coach, je peux vous aider à y voir plus clair. Pouvez-vous me donner plus de contexte sur votre situation actuelle ?",
-                "needs_clarification": True,
-                "coaching_advice": "Orientation personnalisée selon le profil"
-            }
+        # Deviner l'intention basique
+        user_lower = user_message.lower()
         
-        elif any(word in user_message_lower for word in ["compare", "comparer", "vs", "versus"]):
-            return {
-                "intent": "comparison",
-                "response": "Je peux vous aider à comparer des offres d'emploi. Pouvez-vous me donner les détails des deux postes que vous souhaitez comparer ? (titre, salaire, localisation, etc.)",
-                "needs_clarification": True,
-                "coaching_advice": "Comparaison détaillée des avantages et inconvénients"
-            }
-        
+        if any(word in user_lower for word in ["perdu", "sais pas", "commencer", "orientation"]):
+            intent = "orientation"
+        elif any(word in user_lower for word in ["vs", "comparer", "différence", "mieux"]):
+            intent = "comparison"
+        elif any(word in user_lower for word in ["conseil", "aide", "comment", "faire"]):
+            intent = "guidance"
+        elif any(word in user_lower for word in ["offre", "emploi", "job", "cherche", "stage"]):
+            intent = "search"
         else:
-            # Considérer comme demande claire
-            return {
-                "intent": "search",
-                "response": "Parfait ! Je vais rechercher les meilleures opportunités pour vous. Laissez-moi analyser le marché...",
-                "search_query": user_message,
-                "needs_clarification": False
-            }
-    
-    def _parse_response(self, text: str) -> Dict:
-        """Parse une réponse texte en structure"""
-        lines = text.strip().split('\n')
-        response = " ".join(lines[:3])
+            intent = "coaching"
         
         return {
-            "intent": "clair" if len(text.split()) > 5 else "vague",
-            "response": response,
-            "search_query": text,
-            "needs_clarification": len(text.split()) < 10
+            "intent": intent,
+            "response": fallback_responses[intent],
+            "needs_clarification": True,
+            "coach_analysis": {},
+            "next_questions": self._generate_followup_questions(intent),
+            "is_coach_response": True
         }
     
-    def generate_clarified_query(self, original_query: str, answers: Dict) -> str:
-        """Génère une requête clarifiée à partir des réponses"""
-        clarified = original_query
+    def respond_with_jobs_context(self, user_message: str, job_data: List[Dict] = None) -> str:
+        """Répond avec le contexte des offres trouvées"""
         
-        if answers.get('domain'):
-            clarified += f" {answers['domain']}"
-        if answers.get('contract_type'):
-            clarified += f" {answers['contract_type']}"
-        if answers.get('experience_level'):
-            clarified += f" {answers['experience_level']}"
-        if answers.get('location'):
-            clarified += f" {answers['location']}"
+        if not job_data:
+            return self.coach_thinking(user_message)["response"]
         
-        return clarified.strip()
+        # Préparer le contexte des offres
+        context = "D'après ce que je vois sur le marché :\n"
+        
+        if job_data:
+            job_titles = [job.get('job_title', 'Inconnu') for job in job_data[:3]]
+            companies = [job.get('company', 'Inconnue') for job in job_data[:3] if job.get('company')]
+            skills = []
+            for job in job_data[:2]:
+                if job.get('required_skills'):
+                    skills.append(job['required_skills'][:50] + "...")
+            
+            context += f"- Les postes qui reviennent : {', '.join(set(job_titles))}\n"
+            if companies:
+                context += f"- Des entreprises qui recrutent : {', '.join(set(companies))}\n"
+            if skills:
+                context += f"- Compétences demandées : {', '.join(skills)}\n"
+        
+        prompt = f"""
+        L'UTILISATEUR : "{user_message}"
+        
+        CONTEXTE DU MARCHÉ :
+        {context}
+        
+        EN TANT QUE COACH KARIM :
+        Analyse ces opportunités et donne tes conseils.
+        Sois pratique, parle des réalités du recrutement au Maroc.
+        Guide la personne sur comment se positionner.
+        """
+        
+        try:
+            response = ollama.chat(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": self.system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                options={"temperature": 0.7}
+            )
+            return response['message']['content']
+        except:
+            # Fallback simple avec contexte
+            return f"Je vois qu'il y a des opportunités en ce moment. {context} Mon conseil : mets en avant tes compétences pertinentes et n'hésite pas à postuler même si tu ne coches pas toutes les cases !"
 
-# Instance globale
-career_assistant = CareerAssistantLLM()
+# Instance globale pour utilisation facile
+career_coach = CareerAssistant()
+
+# Fonction helper pour l'intégration
+ #Fonction helper pour compatibilité
+def get_coach_response(user_message: str, with_jobs: List[Dict] = None) -> Dict:
+    """Fonction principale pour obtenir une réponse du coach"""
+    
+    if with_jobs:
+        response_text = career_coach.respond_with_jobs_context(user_message, with_jobs)
+        return {
+            "intent": "coaching_with_context",
+            "response": response_text,
+            "needs_clarification": False,
+            "is_coach_response": True
+        }
+    else:
+        return career_coach.coach_thinking(user_message)

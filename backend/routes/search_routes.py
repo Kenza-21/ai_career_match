@@ -7,9 +7,10 @@ from typing import Dict, Optional
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
-
+from fastapi.responses import StreamingResponse
+from services.builder.generator_standard import generate_structured_resume
 from services.assistant import career_assistant
-from services.llm_assistant import career_assistant as llm_assistant
+from services.llm_assistant import career_coach
 from services.cv_analyzer import cv_analyzer
 from services.resume_parser_api import resume_parser_api
 from routes.job_routes import job_matcher
@@ -33,7 +34,7 @@ router = APIRouter(prefix="/api", tags=["assistant-v2"])
 def _llm_chat_message(user_query: str) -> Optional[str]:
     """Génère un message conversationnel via Ollama quand dispo."""
     try:
-        analysis = llm_assistant.analyze_query(user_query)
+        analysis = career_coach.coach_thinking(user_query)
         if isinstance(analysis, dict) and analysis.get("response"):
             return analysis["response"]
         if isinstance(analysis, str):
@@ -118,7 +119,19 @@ async def last_results(session_id: str):
         raise HTTPException(status_code=404, detail="No results stored for this session")
     return session["last_results"]
 
-
+@router.post("/generate-resume")
+async def generate_resume(resume_data: dict):
+    """API endpoint to generate resume"""
+    try:
+        doc_bytes = generate_structured_resume(resume_data)
+        return StreamingResponse(
+            content=doc_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={"Content-Disposition": "attachment; filename=resume.docx"}
+        )
+    except Exception as e:
+        return {"success": False, "error": str(e)}  # 
+        
 # --- CV Analyzer Endpoint ---
 @router.post("/cv_analyser")
 async def cv_analyser(
