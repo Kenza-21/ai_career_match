@@ -9,7 +9,7 @@ import google.generativeai as genai
 
 # API Key
 
-GEMINI_API_KEY = "AIzaSyCeC3KDqpz6P0kEdvXDnAfR6KaaOSHcvo4"
+GEMINI_API_KEY = "wx"
 # Configure Gemini
 genai.configure(api_key=GEMINI_API_KEY)
 
